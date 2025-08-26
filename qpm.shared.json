@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/QuestPackageManager/QPM.Package/refs/heads/main/qpm.shared.schema.json",
+  "config": {
+    "version": "0.4.0",
+    "sharedDir": "include",
+    "dependenciesDir": "extern",
+    "info": {
+      "name": "reflectcpp",
+      "id": "reflectcpp",
+      "version": "0.20.0",
+      "url": null,
+      "additionalData": {
+        "overrideSoName": "libreflectcpp.so"
+      }
+    },
+    "workspace": {
+      "scripts": {
+        "build": [
+          "pwsh build.ps1"
+        ]
+      },
+      "qmodIncludeDirs": [
+        "build"
+      ],
+      "qmodIncludeFiles": [],
+      "qmodOutput": null
+    },
+    "dependencies": []
+  },
+  "restoredDependencies": []
+}

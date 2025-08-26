@@ -90,3 +90,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# qpm
+extern
+*.qmod
+!qpm.json
+!qpm.shared.json
