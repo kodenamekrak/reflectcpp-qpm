@@ -96,3 +96,4 @@ extern
 *.qmod
 !qpm.json
 !qpm.shared.json
+!mod.template.json

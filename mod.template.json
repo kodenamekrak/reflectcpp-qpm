@@ -1,0 +1,15 @@
+{
+  "_QPVersion": "0.1.1",
+  "name": "${mod_name}",
+  "id": "${mod_id}",
+  "author": "getml",
+  "version": "${version}",
+  "packageId": "com.beatgames.beatsaber",
+  "description": "A Utility library for parsing various data types",
+  "modloader": "Scotland2",
+  "dependencies": [],
+  "modFiles": [],
+  "libraryFiles": ["${binary}"],
+  "fileCopies": [],
+  "copyExtensions": []
+}

@@ -17,6 +17,9 @@
       "scripts": {
         "build": [
           "pwsh build.ps1"
+        ],
+        "qmod": [
+          "qpm qmod zip"
         ]
       },
       "qmodIncludeDirs": [
