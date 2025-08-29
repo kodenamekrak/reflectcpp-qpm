@@ -7,8 +7,10 @@
     "name": "reflectcpp",
     "id": "reflectcpp",
     "version": "0.20.0",
-    "url": null,
+    "url": "https://github.com/kodenamekrak/reflectcpp-qpm",
     "additionalData": {
+      "soLink": "https://github.com/kodenamekrak/reflectcpp-qpm/releases/download/0.20.0/libreflectcpp.so",
+      "modLink": "https://github.com/kodenamekrak/reflectcpp-qpm/releases/download/0.20.0/reflectcpp.qmod",
       "overrideSoName": "libreflectcpp.so"
     }
   },
