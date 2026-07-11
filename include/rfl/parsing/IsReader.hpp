@@ -1,7 +1,6 @@
 #ifndef RFL_PARSING_ISREADER_HPP_
 #define RFL_PARSING_ISREADER_HPP_
 
-#include <array>
 #include <concepts>
 #include <cstdint>
 #include <functional>
@@ -18,6 +17,11 @@
 namespace rfl {
 namespace parsing {
 
+/**
+ * @brief A mock reader for arrays.
+ *
+ * @tparam R The reader type.
+ */
 template <class R>
 struct MockArrayReader {
   std::optional<Error> read(typename R::InputVarType&) const {
@@ -25,11 +29,22 @@ struct MockArrayReader {
   }
 };
 
+/**
+ * @brief A mock reader for objects.
+ *
+ * @tparam R The reader type.
+ */
 template <class R>
 struct MockObjectReader {
   void read(const std::string_view&, typename R::InputVarType&) const {}
 };
 
+/**
+ * @brief A reader for a specific format.
+ *
+ * @tparam R The reader type.
+ * @tparam T The type to be read.
+ */
 template <class R, class T>
 concept IsReader =
     (SupportsTaggedUnions<R> || schemaful::IsSchemafulReader<R>) &&

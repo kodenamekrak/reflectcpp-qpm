@@ -3,15 +3,14 @@
 
 #include <capnp/schema-parser.h>
 
-#include <memory>
 #include <string>
 
 #include "../Box.hpp"
-#include "../Result.hpp"
+#include "../common.hpp"
 
 namespace rfl::capnproto {
 
-class SchemaImpl {
+class RFL_API SchemaImpl {
  public:
   SchemaImpl(const std::string& _str);
 

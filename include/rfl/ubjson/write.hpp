@@ -14,9 +14,14 @@
 
 namespace rfl::ubjson {
 
-/// Returns UBJSON bytes.
+/// Returns UBJSON bytes representation of the object.
+/// UBJSON (Universal Binary JSON) is a compact binary format that mirrors JSON's data model.
+/// Uses compile-time reflection to serialize a C++ object to UBJSON format.
+/// @tparam Ps Processors to apply during serialization (transforms the data)
+/// @param _obj The object to serialize to UBJSON
+/// @return A vector of chars containing the UBJSON binary representation
 template <class... Ps>
-std::vector<char> write(const auto& _obj) noexcept {
+std::vector<char> write(const auto& _obj) {
   using T = std::remove_cvref_t<decltype(_obj)>;
   using ParentType = parsing::Parent<Writer>;
   std::vector<uint8_t> buffer;
@@ -29,9 +34,14 @@ std::vector<char> write(const auto& _obj) noexcept {
       internal::ptr_cast<char*>(buffer.data() + buffer.size()));
 }
 
-/// Writes a UBJSON into an ostream.
+/// Writes a UBJSON representation into an ostream.
+/// Uses compile-time reflection to serialize a C++ object to UBJSON and write to a stream.
+/// @tparam Ps Processors to apply during serialization (transforms the data)
+/// @param _obj The object to serialize to UBJSON
+/// @param _stream The output stream to write UBJSON binary data to
+/// @return The output stream (for chaining)
 template <class... Ps>
-std::ostream& write(const auto& _obj, std::ostream& _stream) noexcept {
+std::ostream& write(const auto& _obj, std::ostream& _stream) {
   auto buffer = write<Ps...>(_obj);
   _stream.write(buffer.data(), buffer.size());
   return _stream;

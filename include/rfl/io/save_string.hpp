@@ -2,7 +2,6 @@
 #define RFL_IO_SAVE_STRING_HPP_
 
 #include <fstream>
-#include <iostream>
 #include <string>
 
 #include "../Result.hpp"
@@ -16,6 +15,9 @@ Result<Nothing> save_string(const std::string& _fname, const T& _obj,
   try {
     std::ofstream outfile;
     outfile.open(_fname);
+    if (!outfile.is_open()) {
+      return error("Unable to open file '" + _fname + "' for writing.");
+    }
     _write(_obj, outfile);
     outfile.close();
   } catch (std::exception& e) {

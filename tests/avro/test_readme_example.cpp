@@ -1,4 +1,3 @@
-#include <iostream>
 #include <rfl.hpp>
 #include <string>
 #include <vector>
@@ -41,6 +40,6 @@ TEST(avro, test_readme_example) {
                             .email = "homer@simpson.com",
                             .child = std::vector<Person>({bart, lisa, maggie})};
 
-  write_and_read(homer);
+  write_and_read_with_json(homer);
 }
 }  // namespace test_readme_example

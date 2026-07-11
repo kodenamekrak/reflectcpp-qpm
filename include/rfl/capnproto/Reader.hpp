@@ -3,23 +3,22 @@
 
 #include <capnp/dynamic.h>
 
-#include <cstddef>
 #include <exception>
+#include <optional>
 #include <string>
-#include <string_view>
 #include <type_traits>
-#include <vector>
 
 #include "../Bytestring.hpp"
 #include "../Result.hpp"
 #include "../Vectorstring.hpp"
 #include "../always_false.hpp"
+#include "../common.hpp"
 #include "../internal/is_literal.hpp"
 #include "../internal/ptr_cast.hpp"
 
 namespace rfl::capnproto {
 
-class Reader {
+class RFL_API Reader {
  public:
   struct CapNProtoInputArray {
     capnp::DynamicList::Reader val_;
@@ -71,8 +70,7 @@ class Reader {
       using VectorType = std::remove_cvref_t<T>;
       using ValueType = typename VectorType::value_type;
       if (type != capnp::DynamicValue::DATA) {
-        if constexpr (std::is_same<std::remove_cvref_t<T>,
-                                      rfl::Bytestring>()) {
+        if constexpr (std::is_same<std::remove_cvref_t<T>, rfl::Bytestring>()) {
           return error("Could not cast to bytestring.");
         } else {
           return error("Could not cast to vectorstring.");
@@ -167,8 +165,9 @@ class Reader {
       const auto entries = _map.val_.get("entries").as<capnp::DynamicList>();
       for (auto entry : entries) {
         auto s = entry.template as<capnp::DynamicStruct>();
-        const char* key = s.get("key").as<capnp::Text>().cStr();
-        _map_reader.read(std::string_view(key), InputVarType{s.get("value")});
+        const auto key = s.get("key").as<capnp::Text>();
+        _map_reader.read(std::string_view(key.cStr(), key.size()),
+                         InputVarType{s.get("value")});
       }
       return std::nullopt;
     } catch (std::exception& e) {

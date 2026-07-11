@@ -1,18 +1,17 @@
 #ifndef RFL_PARSING_FIELDVARIANTREADER_HPP_
 #define RFL_PARSING_FIELDVARIANTREADER_HPP_
 
-#include <array>
 #include <optional>
 #include <sstream>
 #include <string_view>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include "../Result.hpp"
 #include "../Variant.hpp"
 #include "../internal/is_array.hpp"
 #include "../internal/nth_element_t.hpp"
+#include "Parser_base.hpp"
 
 namespace rfl::parsing {
 
@@ -24,12 +23,24 @@ class FieldVariantReader {
   using ResultType = Result<FieldVariantType>;
 
  public:
+  /**
+   * @brief Constructor.
+   *
+   * @param _r The reader to use.
+   * @param _field_variant The field variant to write to.
+   */
   FieldVariantReader(const R* _r,
                      std::optional<Result<FieldVariantType>>* _field_variant)
       : r_(_r), field_variant_(_field_variant) {}
 
   ~FieldVariantReader() = default;
 
+  /**
+   * @brief Reads a field from the input.
+   *
+   * @param _disc_value The name of the field.
+   * @param _var The input variable to read from.
+   */
   void read(const std::string_view& _disc_value,
             const InputVarType& _var) const noexcept {
     try_matching_fields(

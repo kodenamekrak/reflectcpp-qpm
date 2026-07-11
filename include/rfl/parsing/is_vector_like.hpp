@@ -5,14 +5,17 @@
 #include <forward_list>
 #include <list>
 #include <set>
-#include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 namespace rfl {
 namespace parsing {
 
+/**
+ * @brief Trait to check if a type is a vector-like type.
+ *
+ * @tparam T The type to check.
+ */
 template <class T>
 class is_vector_like;
 

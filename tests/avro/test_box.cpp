@@ -1,8 +1,5 @@
 #include <cassert>
-#include <iostream>
 #include <rfl.hpp>
-#include <string>
-#include <vector>
 
 #include "write_and_read.hpp"
 
@@ -38,7 +35,6 @@ TEST(avro, test_box) {
 
   const DecisionTree tree{.leaf_or_node = std::move(node)};
 
-  write_and_read(tree);
-
+  write_and_read_with_json(tree);
 }
 }  // namespace test_box

@@ -8,8 +8,10 @@
 #include "../Result.hpp"
 #include "../TaggedUnion.hpp"
 #include "../always_false.hpp"
+#include "../internal/no_field_names_v.hpp"
 #include "../internal/strings/strings.hpp"
 #include "../named_tuple_t.hpp"
+#include "../visit.hpp"
 #include "Parser_base.hpp"
 #include "TaggedUnionWrapper.hpp"
 #include "is_tagged_union_wrapper.hpp"
@@ -32,12 +34,20 @@ struct Parser<R, W, TaggedUnion<_discriminator, AlternativeTypes...>,
   using InputObjectType = typename R::InputObjectType;
   using InputVarType = typename R::InputVarType;
 
-  constexpr static bool no_field_names_ = ProcessorsType::no_field_names_;
+  constexpr static bool no_field_names_ =
+      internal::no_field_names_v<ProcessorsType>;
 
   using InputObjectOrArrayType =
       std::conditional_t<no_field_names_, typename R::InputArrayType,
                          typename R::InputObjectType>;
 
+  /**
+   * @brief Reads a tagged union from the input.
+   *
+   * @param _r The reader to use.
+   * @param _var The input variable to read from.
+   * @return A Result containing the parsed tagged union or an error.
+   */
   static ResultType read(const R& _r, const InputVarType& _var) noexcept {
     if constexpr (schemaful::IsSchemafulReader<R>) {
       return Parser<R, W, Variant<AlternativeTypes...>, ProcessorsType>::read(
@@ -68,11 +78,19 @@ struct Parser<R, W, TaggedUnion<_discriminator, AlternativeTypes...>,
     }
   }
 
+  /**
+   * @brief Writes a tagged union to the output.
+   *
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _tagged_union The tagged union to write.
+   * @param _parent The parent object.
+   */
   template <class P>
   static void write(
       const W& _w,
       const TaggedUnion<_discriminator, AlternativeTypes...>& _tagged_union,
-      const P& _parent) noexcept {
+      const P& _parent) {
     if constexpr (schemaful::IsSchemafulWriter<W>) {
       Parser<R, W, Variant<AlternativeTypes...>, ProcessorsType>::write(
           _w, _tagged_union.variant(), _parent);
@@ -82,6 +100,12 @@ struct Parser<R, W, TaggedUnion<_discriminator, AlternativeTypes...>,
     }
   }
 
+  /**
+   * @brief Generates the schema for the tagged union.
+   *
+   * @param _definitions The map of definitions to add to.
+   * @return The schema type.
+   */
   static schema::Type to_schema(
       std::map<std::string, schema::Type>* _definitions) noexcept {
     if constexpr (schemaful::IsSchemafulReader<R> &&
@@ -126,7 +150,7 @@ struct Parser<R, W, TaggedUnion<_discriminator, AlternativeTypes...>,
                                         const std::string& _disc_value,
                                         const InputVarType& _var,
                                         ResultType* _result,
-                                        bool* _match_found) noexcept {
+                                        bool* _match_found) {
     using AlternativeType = std::remove_cvref_t<
         std::variant_alternative_t<_i, std::variant<AlternativeTypes...>>>;
 
@@ -147,24 +171,19 @@ struct Parser<R, W, TaggedUnion<_discriminator, AlternativeTypes...>,
       const auto embellish_error = [&](auto&& _e) {
         std::stringstream stream;
         stream << "Could not parse tagged union with "
-                  "discrimininator "
+                  "discriminator "
                << _discriminator.str() << " '" << _disc_value
                << "': " << _e.what();
         return Error(stream.str());
       };
 
-      if constexpr (no_field_names_) {
-        using T = tagged_union_wrapper_no_ptr_t<std::invoke_result_t<
-            decltype(wrap_if_necessary<AlternativeType>), AlternativeType>>;
-        *_result = Parser<R, W, T, ProcessorsType>::read(_r, _var)
-                    .transform(get_fields)
-                    .transform(to_tagged_union)
-                    .transform_error(embellish_error);
-      } else {
-        *_result = Parser<R, W, AlternativeType, ProcessorsType>::read(_r, _var)
-                    .transform(to_tagged_union)
-                    .transform_error(embellish_error);
-      }
+      using T = tagged_union_wrapper_no_ptr_t<std::invoke_result_t<
+          decltype(wrap_if_necessary<AlternativeType>), AlternativeType>>;
+
+      *_result = Parser<R, W, T, ProcessorsType>::read(_r, _var)
+                     .transform(get_fields)
+                     .transform(to_tagged_union)
+                     .transform_error(embellish_error);
 
       *_match_found = true;
     }
@@ -205,8 +224,7 @@ struct Parser<R, W, TaggedUnion<_discriminator, AlternativeTypes...>,
 
   /// Writes a wrapped version of the original object, which contains the tag.
   template <class T, class P>
-  static void write_wrapped(const W& _w, const T& _val,
-                            const P& _parent) noexcept {
+  static void write_wrapped(const W& _w, const T& _val, const P& _parent) {
     const auto wrapped = wrap_if_necessary<T>(_val);
     Parser<R, W, std::remove_cvref_t<decltype(wrapped)>, ProcessorsType>::write(
         _w, wrapped, _parent);
@@ -215,7 +233,7 @@ struct Parser<R, W, TaggedUnion<_discriminator, AlternativeTypes...>,
   /// Generates a wrapped version of the original object, which contains the
   /// tag, if the object doesn't already contain the wrap.
   template <class T>
-  static auto wrap_if_necessary(const T& _val) noexcept {
+  static auto wrap_if_necessary(const T& _val) {
     if constexpr (named_tuple_t<T>::Names::template contains<
                       _discriminator>()) {
       return _val;

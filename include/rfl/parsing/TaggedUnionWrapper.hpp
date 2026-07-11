@@ -1,9 +1,9 @@
 #ifndef RFL_PARSING_TAGGEDUNIONWRAPPER_HPP_
 #define RFL_PARSING_TAGGEDUNIONWRAPPER_HPP_
 
-#include <string>
 #include <type_traits>
 
+#include "../Field.hpp"
 #include "../Flatten.hpp"
 #include "../Rename.hpp"
 #include "../internal/StringLiteral.hpp"

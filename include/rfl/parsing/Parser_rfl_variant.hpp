@@ -3,19 +3,22 @@
 
 #include <map>
 #include <type_traits>
-#include <variant>
 
 #include "../Result.hpp"
 #include "../Variant.hpp"
 #include "../always_false.hpp"
+#include "../internal/add_tags_to_variants_v.hpp"
+#include "../internal/all_fields.hpp"
 #include "../internal/nth_element_t.hpp"
 #include "FieldVariantParser.hpp"
+#include "Parent.hpp"
 #include "Parser_base.hpp"
 #include "VariantAlternativeWrapper.hpp"
 #include "schema/Type.hpp"
 #include "schemaful/IsSchemafulReader.hpp"
 #include "schemaful/IsSchemafulWriter.hpp"
 #include "schemaful/VariantReader.hpp"
+#include "to_single_error_message.hpp"
 
 namespace rfl::parsing {
 
@@ -27,6 +30,13 @@ class Parser<R, W, rfl::Variant<AlternativeTypes...>, ProcessorsType> {
  public:
   using InputVarType = typename R::InputVarType;
 
+  /**
+   * @brief Reads an rfl::Variant from the input.
+   *
+   * @param _r The reader to use.
+   * @param _var The input variable to read from.
+   * @return A Result containing the parsed rfl::Variant or an error.
+   */
   static Result<rfl::Variant<AlternativeTypes...>> read(
       const R& _r, const InputVarType& _var) noexcept {
     if constexpr (internal::all_fields<std::tuple<AlternativeTypes...>>()) {
@@ -53,9 +63,13 @@ class Parser<R, W, rfl::Variant<AlternativeTypes...>, ProcessorsType> {
         return _r.template read_union<Variant<AlternativeTypes...>, V>(_u);
       });
 
-    } else if constexpr (ProcessorsType::add_tags_to_variants_) {
-      using FieldVariantType =
-          rfl::Variant<VariantAlternativeWrapper<AlternativeTypes>...>;
+    } else if constexpr (internal::add_tags_to_variants_v<ProcessorsType> ||
+                         internal::add_namespaced_tags_to_variants_v<
+                             ProcessorsType>) {
+      constexpr bool remove_namespaces =
+          internal::add_tags_to_variants_v<ProcessorsType>;
+      using FieldVariantType = rfl::Variant<
+          VariantAlternativeWrapper<AlternativeTypes, remove_namespaces>...>;
       const auto from_field_variant =
           [](auto&& _field) -> rfl::Variant<AlternativeTypes...> {
         return std::move(_field.value());
@@ -67,7 +81,7 @@ class Parser<R, W, rfl::Variant<AlternativeTypes...>, ProcessorsType> {
 
     } else {
       std::optional<rfl::Variant<AlternativeTypes...>> result;
-      std::vector<Error> errors;
+      std::vector<std::string> errors;
       errors.reserve(sizeof...(AlternativeTypes));
       read_variant(
           _r, _var, &result, &errors,
@@ -85,10 +99,18 @@ class Parser<R, W, rfl::Variant<AlternativeTypes...>, ProcessorsType> {
     }
   }
 
+  /**
+   * @brief Writes an rfl::Variant to the output.
+   *
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _variant The rfl::Variant to write.
+   * @param _parent The parent object.
+   */
   template <class P>
   static void write(const W& _w,
                     const rfl::Variant<AlternativeTypes...>& _variant,
-                    const P& _parent) noexcept {
+                    const P& _parent) {
     if constexpr (internal::all_fields<std::tuple<AlternativeTypes...>>()) {
       if constexpr (schemaful::IsSchemafulWriter<W>) {
         using WrappedType = rfl::Variant<
@@ -119,12 +141,17 @@ class Parser<R, W, rfl::Variant<AlternativeTypes...>, ProcessorsType> {
           },
           _variant);
 
-    } else if constexpr (ProcessorsType::add_tags_to_variants_) {
+    } else if constexpr (internal::add_tags_to_variants_v<ProcessorsType> ||
+                         internal::add_namespaced_tags_to_variants_v<
+                             ProcessorsType>) {
+      constexpr bool remove_namespaces =
+          internal::add_tags_to_variants_v<ProcessorsType>;
       using FieldVariantType =
-          rfl::Variant<VariantAlternativeWrapper<const AlternativeTypes*>...>;
+          rfl::Variant<VariantAlternativeWrapper<const AlternativeTypes*,
+                                                 remove_namespaces>...>;
       const auto to_field_variant =
           []<class T>(const T& _t) -> FieldVariantType {
-        return VariantAlternativeWrapper<const T*>(&_t);
+        return VariantAlternativeWrapper<const T*, remove_namespaces>(&_t);
       };
       Parser<R, W, FieldVariantType, ProcessorsType>::write(
           _w, _variant.visit(to_field_variant), _parent);
@@ -138,15 +165,25 @@ class Parser<R, W, rfl::Variant<AlternativeTypes...>, ProcessorsType> {
     }
   }
 
+  /**
+   * @brief Generates the schema for the rfl::Variant.
+   *
+   * @param _definitions The map of definitions to add to.
+   * @return The schema type.
+   */
   static schema::Type to_schema(
       std::map<std::string, schema::Type>* _definitions) {
     if constexpr (internal::all_fields<std::tuple<AlternativeTypes...>>()) {
       return FieldVariantParser<R, W, ProcessorsType,
                                 AlternativeTypes...>::to_schema(_definitions);
 
-    } else if constexpr (ProcessorsType::add_tags_to_variants_) {
-      using FieldVariantType =
-          rfl::Variant<VariantAlternativeWrapper<AlternativeTypes>...>;
+    } else if constexpr (internal::add_tags_to_variants_v<ProcessorsType> ||
+                         internal::add_namespaced_tags_to_variants_v<
+                             ProcessorsType>) {
+      constexpr bool remove_namespaces =
+          internal::add_tags_to_variants_v<ProcessorsType>;
+      using FieldVariantType = rfl::Variant<
+          VariantAlternativeWrapper<AlternativeTypes, remove_namespaces>...>;
       return Parser<R, W, FieldVariantType, ProcessorsType>::to_schema(
           _definitions);
 
@@ -180,7 +217,7 @@ class Parser<R, W, rfl::Variant<AlternativeTypes...>, ProcessorsType> {
   static void read_one_alternative(
       const R& _r, const InputVarType& _var,
       std::optional<rfl::Variant<AlternativeTypes...>>* _result,
-      std::vector<Error>* _errors) noexcept {
+      std::vector<std::string>* _errors) noexcept {
     if (!*_result) {
       using AltType =
           std::remove_cvref_t<internal::nth_element_t<_i, AlternativeTypes...>>;
@@ -188,7 +225,7 @@ class Parser<R, W, rfl::Variant<AlternativeTypes...>, ProcessorsType> {
       if (res) {
         *_result = std::move(*res);
       } else {
-        _errors->emplace_back(std::move(res.error()));
+        _errors->emplace_back(std::move(res.error().what()));
       }
     }
   }
@@ -197,7 +234,7 @@ class Parser<R, W, rfl::Variant<AlternativeTypes...>, ProcessorsType> {
   static void read_variant(
       const R& _r, const InputVarType& _var,
       std::optional<rfl::Variant<AlternativeTypes...>>* _result,
-      std::vector<Error>* _errors,
+      std::vector<std::string>* _errors,
       std::integer_sequence<int, _is...>) noexcept {
     (read_one_alternative<_is>(_r, _var, _result, _errors), ...);
   }

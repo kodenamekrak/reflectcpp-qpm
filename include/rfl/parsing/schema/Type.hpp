@@ -9,11 +9,12 @@
 #include "../../Object.hpp"
 #include "../../Ref.hpp"
 #include "../../Variant.hpp"
+#include "../../common.hpp"
 #include "ValidationType.hpp"
 
 namespace rfl::parsing::schema {
 
-struct Type {
+struct RFL_API Type {
   struct Boolean {};
 
   struct Bytestring {};
@@ -40,6 +41,12 @@ struct Type {
     std::vector<Type> types_;
   };
 
+  struct Deprecated {
+    std::string deprecation_message_;
+    std::string description_;
+    Ref<Type> type_;
+  };
+
   struct Description {
     std::string description_;
     Ref<Type> type_;
@@ -52,6 +59,14 @@ struct Type {
 
   struct Literal {
     std::vector<std::string> values_;
+  };
+
+  struct DescribedLiteral {
+    struct ValueWithDescription {
+      std::string value_;
+      std::string description_;
+    };
+    std::vector<ValueWithDescription> values_;
   };
 
   struct Object {
@@ -90,15 +105,27 @@ struct Type {
   };
 
   using VariantType =
-      rfl::Variant<Boolean, Bytestring, Vectorstring, Int32, Int64, UInt32, UInt64, Integer,
-                   Float, Double, String, AnyOf, Description,
-                   FixedSizeTypedArray, Literal, Object, Optional, Reference,
-                   StringMap, Tuple, TypedArray, Validated>;
+      rfl::Variant<Boolean, Bytestring, Vectorstring, Int32, Int64, UInt32,
+                   UInt64, Integer, Float, Double, String, AnyOf, Deprecated,
+                   Description, DescribedLiteral, FixedSizeTypedArray, Literal,
+                   Object, Optional, Reference, StringMap, Tuple, TypedArray,
+                   Validated>;
 
+  /**
+   * @brief Default constructor.
+   */
   Type();
 
+  /**
+   * @brief Constructor.
+   *
+   * @param _variant The variant to use.
+   */
   Type(const VariantType& _variant);
 
+  /**
+   * @brief Destructor.
+   */
   ~Type();
 
   /// A type can be determined to be any of the above.

@@ -1,9 +1,11 @@
 #ifndef RFL_PARSING_VECTORREADER_HPP_
 #define RFL_PARSING_VECTORREADER_HPP_
 
+#include <optional>
 #include <type_traits>
 
 #include "../Result.hpp"
+#include "Parser_base.hpp"
 #include "is_map_like.hpp"
 #include "is_set_like.hpp"
 
@@ -16,10 +18,22 @@ class VectorReader {
   using T = typename VecType::value_type;
 
  public:
+  /**
+   * @brief Constructor.
+   *
+   * @param _r The reader to use.
+   * @param _vec The vector to read into.
+   */
   VectorReader(const R* _r, VecType* _vec) : r_(_r), vec_(_vec) {}
 
   ~VectorReader() = default;
 
+  /**
+   * @brief Reads a single variable from the input.
+   *
+   * @param _var The input variable to read from.
+   * @return An optional error.
+   */
   std::optional<Error> read(const InputVarType& _var) const {
     const auto parse = [this](const InputVarType& _var) {
       if constexpr (is_map_like_v<VecType>) {

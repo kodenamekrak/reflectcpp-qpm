@@ -7,8 +7,6 @@
 #include "../thirdparty/yyjson.h"
 #endif
 
-#include <fstream>
-#include <iostream>
 #include <string>
 
 #include "../Result.hpp"
@@ -18,11 +16,18 @@
 namespace rfl {
 namespace json {
 
+/// Saves an object to a JSON file.
+/// Serializes a C++ object to JSON and writes it to a file using compile-time reflection.
+/// @tparam Ps Processors to apply during serialization (transforms the data)
+/// @param _fname The filename/path where the JSON file will be saved
+/// @param _obj The object to serialize to JSON
+/// @param _flag Optional yyjson flags for formatting (use `pretty` for pretty-printing, default: 0)
+/// @return Result containing Nothing on success or an error message on failure
 template <class... Ps>
 Result<Nothing> save(const std::string& _fname, const auto& _obj,
                      const yyjson_write_flag _flag = 0) {
-  const auto write_func = [_flag](const auto& _obj, auto& _stream) -> auto& {
-    return write<Ps...>(_obj, _stream, _flag);
+  const auto write_func = [_flag](const auto& _obj_ref, auto& _stream) -> auto& {
+    return write<Ps...>(_obj_ref, _stream, _flag);
   };
   return rfl::io::save_string(_fname, _obj, write_func);
 }

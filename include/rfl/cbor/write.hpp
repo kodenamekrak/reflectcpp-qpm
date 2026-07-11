@@ -4,9 +4,6 @@
 #include <cstdint>
 #include <jsoncons_ext/cbor/cbor_encoder.hpp>
 #include <ostream>
-#include <sstream>
-#include <string>
-#include <utility>
 
 #include "../internal/ptr_cast.hpp"
 #include "../parsing/Parent.hpp"
@@ -14,9 +11,14 @@
 
 namespace rfl::cbor {
 
-/// Returns CBOR bytes.
+/// Returns CBOR bytes representation of the object.
+/// CBOR (Concise Binary Object Representation) is a binary data format similar to JSON but more compact.
+/// Uses compile-time reflection to serialize a C++ object to CBOR format.
+/// @tparam Ps Processors to apply during serialization (transforms the data)
+/// @param _obj The object to serialize to CBOR
+/// @return A vector of chars containing the CBOR binary representation
 template <class... Ps>
-std::vector<char> write(const auto& _obj) noexcept {
+std::vector<char> write(const auto& _obj) {
   using T = std::remove_cvref_t<decltype(_obj)>;
   using ParentType = parsing::Parent<Writer>;
   std::vector<uint8_t> buffer;
@@ -29,9 +31,14 @@ std::vector<char> write(const auto& _obj) noexcept {
       internal::ptr_cast<char*>(buffer.data() + buffer.size()));
 }
 
-/// Writes a CBOR into an ostream.
+/// Writes a CBOR representation into an ostream.
+/// Uses compile-time reflection to serialize a C++ object to CBOR and write to a stream.
+/// @tparam Ps Processors to apply during serialization (transforms the data)
+/// @param _obj The object to serialize to CBOR
+/// @param _stream The output stream to write CBOR binary data to
+/// @return The output stream (for chaining)
 template <class... Ps>
-std::ostream& write(const auto& _obj, std::ostream& _stream) noexcept {
+std::ostream& write(const auto& _obj, std::ostream& _stream) {
   auto buffer = write<Ps...>(_obj);
   _stream.write(buffer.data(), buffer.size());
   return _stream;

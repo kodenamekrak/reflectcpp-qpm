@@ -9,6 +9,8 @@
 
 #include "../Result.hpp"
 #include "../always_false.hpp"
+#include "../internal/has_reflection_type_v.hpp"
+#include "Parser_base.hpp"
 
 namespace rfl::parsing {
 
@@ -21,19 +23,32 @@ class MapReader {
       std::remove_cvref_t<typename MapType::value_type::second_type>;
 
  public:
-  MapReader(const R* _r, MapType* _map, std::vector<Error>* _errors)
+  /**
+   * @brief Constructor.
+   *
+   * @param _r The reader to use.
+   * @param _map The map to write to.
+   * @param _errors The vector to collect errors in.
+   */
+  MapReader(const R* _r, MapType* _map, std::vector<std::string>* _errors)
       : r_(_r), map_(_map), errors_(_errors) {}
 
   ~MapReader() = default;
 
+  /**
+   * @brief Reads a single field into the map.
+   *
+   * @param _name The name of the field.
+   * @param _var The input variable to read from.
+   */
   void read(const std::string_view& _name,
             const InputVarType& _var) const noexcept {
     auto res = get_pair(_name, _var);
     if (res) {
       map_->emplace(std::move(*res));
     } else {
-      errors_->push_back(Error("Failed to parse field '" + std::string(_name) +
-                               "': " + res.error().what()));
+      errors_->push_back("Failed to parse field '" + std::string(_name) +
+                         "': " + res.error().what());
     }
   }
 
@@ -56,7 +71,8 @@ class MapReader {
   }
 
   Result<std::pair<KeyType, ValueType>> make_key(auto&& _pair) const noexcept {
-    static_assert(std::is_rvalue_reference_v<decltype(_pair)>, "Expected an rvalue");
+    static_assert(std::is_rvalue_reference_v<decltype(_pair)>,
+                  "Expected an rvalue");
     const auto to_pair =
         [&](auto&& _key) -> Result<std::pair<KeyType, ValueType>> {
       try {
@@ -106,7 +122,7 @@ class MapReader {
   MapType* map_;
 
   /// Collects any errors we may have come across.
-  std::vector<Error>* errors_;
+  std::vector<std::string>* errors_;
 };
 
 }  // namespace rfl::parsing

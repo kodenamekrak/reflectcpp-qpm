@@ -1,7 +1,5 @@
-#include <iostream>
 #include <rfl.hpp>
 #include <string>
-#include <vector>
 
 #include "write_and_read.hpp"
 
@@ -17,6 +15,6 @@ TEST(avro, test_readme_example2) {
   const auto homer =
       Person{.first_name = "Homer", .last_name = "Simpson", .age = 45};
 
-  write_and_read(homer);
+  write_and_read_with_json(homer);
 }
 }  // namespace test_readme_example2

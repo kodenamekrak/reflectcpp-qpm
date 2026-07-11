@@ -13,7 +13,7 @@ namespace rfl {
 
 /// Used to define a field in the NamedTuple.
 template <class T>
-requires std::is_integral_v<T>
+  requires std::is_integral_v<T>
 struct Oct {
   /// The underlying type.
   using Type = T;
@@ -34,16 +34,16 @@ struct Oct {
   template <class U>
   Oct(Oct<U>&& _other) : value_(_other.get()) {}
 
-  template <class U, typename std::enable_if<std::is_convertible_v<U, Type>,
-                                             bool>::type = true>
+  template <class U>
+    requires std::is_convertible_v<U, Type>
   Oct(const U& _value) : value_(_value) {}
 
-  template <class U, typename std::enable_if<std::is_convertible_v<U, Type>,
-                                             bool>::type = true>
+  template <class U>
+    requires std::is_convertible_v<U, Type>
   Oct(U&& _value) noexcept : value_(std::forward<U>(_value)) {}
 
-  template <class U, typename std::enable_if<std::is_convertible_v<U, Type>,
-                                             bool>::type = true>
+  template <class U>
+    requires std::is_convertible_v<U, Type>
   Oct(const Oct<U>& _other) : value_(_other.value()) {}
 
   Oct(const std::string& _str) {
@@ -53,13 +53,22 @@ struct Oct {
   ~Oct() = default;
 
   /// Returns the underlying object.
-  const Type& get() const { return value_; }
+  const Type& get() const noexcept { return value_; }
 
   /// Returns the underlying object.
-  Type& operator()() { return value_; }
+  Type& get() noexcept { return value_; }
 
   /// Returns the underlying object.
-  const Type& operator()() const { return value_; }
+  Type& operator*() noexcept { return value_; }
+
+  /// Returns the underlying object.
+  const Type& operator*() const noexcept { return value_; }
+
+  /// Returns the underlying object.
+  Type& operator()() noexcept { return value_; }
+
+  /// Returns the underlying object.
+  const Type& operator()() const noexcept { return value_; }
 
   /// Assigns the underlying object.
   auto& operator=(const Type& _value) {
@@ -68,8 +77,8 @@ struct Oct {
   }
 
   /// Assigns the underlying object.
-  template <class U, typename std::enable_if<std::is_convertible_v<U, Type>,
-                                             bool>::type = true>
+  template <class U>
+    requires std::is_convertible_v<U, Type>
   auto& operator=(const U& _value) {
     value_ = _value;
     return *this;
@@ -116,10 +125,10 @@ struct Oct {
   std::string str() const { return reflection(); }
 
   /// Returns the underlying object.
-  Type& value() { return value_; }
+  Type& value() noexcept { return value_; }
 
   /// Returns the underlying object.
-  const Type& value() const { return value_; }
+  const Type& value() const noexcept { return value_; }
 
   /// The underlying value.
   Type value_;

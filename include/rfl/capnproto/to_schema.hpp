@@ -1,26 +1,26 @@
 #ifndef RFL_CAPNPROTO_TOSCHEMA_HPP_
 #define RFL_CAPNPROTO_TOSCHEMA_HPP_
 
-#include <map>
 #include <string>
-#include <type_traits>
 
 #include "../Literal.hpp"
 #include "../Processors.hpp"
 #include "../Result.hpp"
 #include "../SnakeCaseToCamelCase.hpp"
 #include "../Variant.hpp"
+#include "../common.hpp"
 #include "../json.hpp"
 #include "../parsing/schema/Type.hpp"
 #include "../parsing/schema/ValidationType.hpp"
 #include "../parsing/schema/make.hpp"
+#include "Reader.hpp"
 #include "Schema.hpp"
 #include "Writer.hpp"
 #include "schema/Type.hpp"
 
 namespace rfl::capnproto {
 
-std::string to_string_representation(
+RFL_API std::string to_string_representation(
     const parsing::schema::Definition& internal_schema);
 
 /// This ensures that the schema is only generated once.

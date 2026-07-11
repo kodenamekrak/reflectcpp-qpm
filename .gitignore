@@ -45,15 +45,20 @@
 *.bson
 *.capnproto
 *.cbor
+*.cereal
+*.csv
 *.json
 *.fb
 *.flexbuf
 *.msgpack
+*.parquet
 *.toml
 *.ubjson
 *.xml
+!package.xml
 *.yml
 *.yaml
+*.yas
 
 !vcpkg.json
 !.github/**/*.yml
@@ -91,9 +96,20 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+<<<<<<< HEAD
 # qpm
 extern
 *.qmod
 !qpm.json
 !qpm.shared.json
 !mod.template.json
+=======
+# Docs
+site/
+>>>>>>> v0.25.0
+
+# qpm
+extern
+*.qmod
+!qpm.json
+!qpm.shared.json

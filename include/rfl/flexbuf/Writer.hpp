@@ -4,27 +4,20 @@
 #include <flatbuffers/flexbuffers.h>
 
 #include <cstddef>
-#include <exception>
-#include <functional>
-#include <map>
-#include <optional>
-#include <sstream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 
 #include "../Bytestring.hpp"
 #include "../Ref.hpp"
-#include "../Result.hpp"
 #include "../Vectorstring.hpp"
 #include "../always_false.hpp"
+#include "../common.hpp"
 
 namespace rfl {
 namespace flexbuf {
 
-struct Writer {
+struct RFL_API Writer {
   struct OutputArray {
     size_t start_;
   };
@@ -43,57 +36,57 @@ struct Writer {
 
   ~Writer();
 
-  OutputArrayType array_as_root(const size_t _size) const noexcept;
+  OutputArrayType array_as_root(const size_t _size) const;
 
-  OutputObjectType object_as_root(const size_t _size) const noexcept;
+  OutputObjectType object_as_root(const size_t _size) const;
 
-  OutputVarType null_as_root() const noexcept;
+  OutputVarType null_as_root() const;
 
   template <class T>
-  OutputVarType value_as_root(const T& _var) const noexcept {
+  OutputVarType value_as_root(const T& _var) const {
     return insert_value(_var);
   }
 
   OutputArrayType add_array_to_array(const size_t _size,
-                                     OutputArrayType* _parent) const noexcept;
+                                     OutputArrayType* _parent) const;
 
-  OutputArrayType add_array_to_object(
-      const std::string_view& _name, const size_t _size,
-      OutputObjectType* _parent) const noexcept;
+  OutputArrayType add_array_to_object(const std::string_view& _name,
+                                      const size_t _size,
+                                      OutputObjectType* _parent) const;
 
-  OutputObjectType add_object_to_array(
-      const size_t _size, OutputArrayType* _parent) const noexcept;
+  OutputObjectType add_object_to_array(const size_t _size,
+                                       OutputArrayType* _parent) const;
 
-  OutputObjectType add_object_to_object(
-      const std::string_view& _name, const size_t _size,
-      OutputObjectType* _parent) const noexcept;
+  OutputObjectType add_object_to_object(const std::string_view& _name,
+                                        const size_t _size,
+                                        OutputObjectType* _parent) const;
 
   template <class T>
   OutputVarType add_value_to_array(const T& _var,
-                                   OutputArrayType* _parent) const noexcept {
+                                   OutputArrayType* /*_parent*/) const {
     return insert_value(_var);
   }
 
   template <class T>
   OutputVarType add_value_to_object(const std::string_view& _name,
                                     const T& _var,
-                                    OutputObjectType* _parent) const noexcept {
+                                    OutputObjectType* /*_parent*/) const {
     return insert_value(_name, _var);
   }
 
-  OutputVarType add_null_to_array(OutputArrayType* _parent) const noexcept;
+  OutputVarType add_null_to_array(OutputArrayType* _parent) const;
 
   OutputVarType add_null_to_object(const std::string_view& _name,
-                                   OutputObjectType* _parent) const noexcept;
+                                   OutputObjectType* _parent) const;
 
-  void end_array(OutputArrayType* _arr) const noexcept;
+  void end_array(OutputArrayType* _arr) const;
 
-  void end_object(OutputObjectType* _obj) const noexcept;
+  void end_object(OutputObjectType* _obj) const;
 
  private:
   template <class T>
   OutputVarType insert_value(const std::string_view& _name,
-                             const T& _var) const noexcept {
+                             const T& _var) const {
     if constexpr (std::is_same<std::remove_cvref_t<T>, std::string>()) {
       fbb_->String(_name.data(), _var);
     } else if constexpr (std::is_same<std::remove_cvref_t<T>,
@@ -114,7 +107,7 @@ struct Writer {
   }
 
   template <class T>
-  OutputVarType insert_value(const T& _var) const noexcept {
+  OutputVarType insert_value(const T& _var) const {
     if constexpr (std::is_same<std::remove_cvref_t<T>, std::string>()) {
       fbb_->String(_var);
     } else if constexpr (std::is_same<std::remove_cvref_t<T>,
@@ -132,13 +125,13 @@ struct Writer {
     return OutputVarType{};
   }
 
-  OutputArrayType new_array(const std::string_view& _name) const noexcept;
+  OutputArrayType new_array(const std::string_view& _name) const;
 
-  OutputArrayType new_array() const noexcept;
+  OutputArrayType new_array() const;
 
-  OutputObjectType new_object(const std::string_view& _name) const noexcept;
+  OutputObjectType new_object(const std::string_view& _name) const;
 
-  OutputObjectType new_object() const noexcept;
+  OutputObjectType new_object() const;
 
  private:
   Ref<flexbuffers::Builder> fbb_;

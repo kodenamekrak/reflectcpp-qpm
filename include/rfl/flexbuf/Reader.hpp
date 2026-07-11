@@ -5,15 +5,12 @@
 
 #include <cstddef>
 #include <exception>
-#include <map>
-#include <sstream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 
 #include "../Bytestring.hpp"
+#include "../Ref.hpp"
 #include "../Result.hpp"
 #include "../Vectorstring.hpp"
 #include "../always_false.hpp"
@@ -27,23 +24,9 @@ struct Reader {
   using InputObjectType = flexbuffers::Map;
   using InputVarType = flexbuffers::Reference;
 
-  template <class T, class = void>
-  struct has_from_flexbuf : std::false_type {};
-
   template <class T>
-  struct has_from_flexbuf<
-      T, std::enable_if_t<std::is_invocable_r<T, decltype(T::from_flexbuf),
-                                              InputVarType>::value>>
-      : std::true_type {};
-
-  template <class T>
-  struct has_from_flexbuf<
-      T, std::enable_if_t<std::is_invocable_r<
-             rfl::Result<T>, decltype(T::from_flexbuf), InputVarType>::value>>
-      : std::true_type {};
-
-  template <class T>
-  static constexpr bool has_custom_constructor = has_from_flexbuf<T>::value;
+  static constexpr bool has_custom_constructor =
+      (requires(InputVarType var) { T::from_flexbuf(var); });
 
   rfl::Result<InputVarType> get_field_from_array(
       const size_t _idx, const InputArrayType& _arr) const noexcept {
@@ -83,8 +66,7 @@ struct Reader {
       using VectorType = std::remove_cvref_t<T>;
       using ValueType = typename VectorType::value_type;
       if (!_var.IsBlob()) {
-        if constexpr (std::is_same<std::remove_cvref_t<T>,
-                                      rfl::Bytestring>()) {
+        if constexpr (std::is_same<std::remove_cvref_t<T>, rfl::Bytestring>()) {
           return error("Could not cast to bytestring.");
         } else {
           return error("Could not cast to vectorstring.");

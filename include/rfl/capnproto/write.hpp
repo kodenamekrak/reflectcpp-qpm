@@ -8,20 +8,15 @@
 #include <capnp/serialize-packed.h>
 #include <kj/io.h>
 
-#include <bit>
-#include <cstdint>
 #include <ostream>
-#include <sstream>
-#include <string>
 #include <type_traits>
-#include <utility>
 
 #include "../SnakeCaseToCamelCase.hpp"
 #include "../internal/ptr_cast.hpp"
-#include "../internal/strings/strings.hpp"
+//#include "../internal/strings/strings.hpp"
 #include "../parsing/Parent.hpp"
 #include "Parser.hpp"
-#include "Schema.hpp"
+//#include "Schema.hpp"
 #include "Writer.hpp"
 #include "get_root_name.hpp"
 #include "to_schema.hpp"
@@ -63,6 +58,13 @@ std::vector<char> write(const auto& _obj) {
 template <class... Ps>
 std::ostream& write(const auto& _obj, std::ostream& _stream) {
   auto buffer = write<Ps...>(_obj);
+  _stream.write(buffer.data(), buffer.size());
+  return _stream;
+}
+
+template <class... Ps>
+std::ostream& write(const auto& _obj, const auto& _schema, std::ostream& _stream) {
+  auto buffer = write<Ps...>(_obj, _schema);
   _stream.write(buffer.data(), buffer.size());
   return _stream;
 }

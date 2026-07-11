@@ -2,6 +2,9 @@
 #define RFL_INTERNAL_SKIP_HPP_
 
 #include <optional>
+#include <type_traits>
+
+#include "../default.hpp"
 
 namespace rfl::internal {
 
@@ -37,40 +40,43 @@ class Skip {
   Skip(const Skip<U, _skip_s, _skip_d>& _other) : value_(_other.get()) {}
 
   template <class U, bool _skip_s, bool _skip_d>
-  Skip(Skip<U, _skip_s, _skip_d>&& _other) : value_(_other.get()) {}
-
-  template <class U, typename std::enable_if<std::is_convertible_v<U, Type>,
-                                             bool>::type = true>
+  Skip(Skip<U, _skip_s, _skip_d>&& _other) : value_(std::move(_other.get())) {}
+  template <class U>
+    requires std::is_convertible_v<U, Type>
   Skip(const U& _value) : value_(_value) {}
 
-  template <class U, typename std::enable_if<std::is_convertible_v<U, Type>,
-                                             bool>::type = true>
+  template <class U>
+    requires std::is_convertible_v<U, Type>
   Skip(U&& _value) noexcept : value_(std::forward<U>(_value)) {}
 
-  template <class U, bool _skip_s, bool _skip_d,
-            typename std::enable_if<std::is_convertible_v<U, Type>,
-                                    bool>::type = true>
+  template <class U, bool _skip_s, bool _skip_d>
+    requires std::is_convertible_v<U, Type>
   Skip(const Skip<U, _skip_s, _skip_d>& _skip) : value_(_skip.value()) {}
 
   /// Assigns the underlying object to its default value.
-  template <class U = Type,
-            typename std::enable_if<std::is_default_constructible_v<U>,
-                                    bool>::type = true>
+  template <class U = Type>
+    requires std::is_default_constructible_v<U>
   Skip(const Default&) : value_(Type()) {}
 
   ~Skip() = default;
 
   /// Returns the underlying object.
-  Type& get() { return value_; }
+  Type& get() noexcept { return value_; }
 
   /// Returns the underlying object.
-  const Type& get() const { return value_; }
+  const Type& get() const noexcept { return value_; }
 
   /// Returns the underlying object.
-  Type& operator()() { return value_; }
+  Type& operator*() noexcept { return value_; }
 
   /// Returns the underlying object.
-  const Type& operator()() const { return value_; }
+  const Type& operator*() const noexcept { return value_; }
+
+  /// Returns the underlying object.
+  Type& operator()() noexcept { return value_; }
+
+  /// Returns the underlying object.
+  const Type& operator()() const noexcept { return value_; }
 
   /// Assigns the underlying object.
   auto& operator=(const Type& _value) {
@@ -85,17 +91,16 @@ class Skip {
   }
 
   /// Assigns the underlying object.
-  template <class U, typename std::enable_if<std::is_convertible_v<U, Type>,
-                                             bool>::type = true>
+  template <class U>
+    requires std::is_convertible_v<U, Type>
   auto& operator=(const U& _value) {
     value_ = _value;
     return *this;
   }
 
   /// Assigns the underlying object to its default value.
-  template <class U = Type,
-            typename std::enable_if<std::is_default_constructible_v<U>,
-                                    bool>::type = true>
+  template <class U = Type>
+    requires std::is_default_constructible_v<U>
   auto& operator=(const Default&) {
     value_ = Type();
     return *this;
@@ -131,10 +136,10 @@ class Skip {
   void set(Type&& _value) { value_ = std::move(_value); }
 
   /// Returns the underlying object.
-  Type& value() { return value_; }
+  Type& value() noexcept { return value_; }
 
   /// Returns the underlying object.
-  const Type& value() const { return value_; }
+  const Type& value() const noexcept { return value_; }
 
  private:
   /// The underlying value

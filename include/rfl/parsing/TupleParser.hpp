@@ -32,6 +32,13 @@ struct TupleParser {
 
   using ParentType = Parent<W>;
 
+  /**
+   * @brief Reads a tuple from the input.
+   *
+   * @param _r The reader to use.
+   * @param _var The input variable to read from.
+   * @return A Result containing the parsed tuple or an error.
+   */
   static Result<TupleType> read(const R& _r,
                                 const InputVarType& _var) noexcept {
     if constexpr (schemaful::IsSchemafulReader<R>) {
@@ -72,9 +79,16 @@ struct TupleParser {
     }
   }
 
+  /**
+   * @brief Writes a tuple to the output.
+   *
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _tup The tuple to write.
+   * @param _parent The parent object.
+   */
   template <class P>
-  static void write(const W& _w, const TupleType& _tup,
-                    const P& _parent) noexcept {
+  static void write(const W& _w, const TupleType& _tup, const P& _parent) {
     if constexpr (schemaful::IsSchemafulWriter<W>) {
       const auto named_tuple = schemaful::tuple_to_named_tuple(_tup);
       Parser<R, W, std::remove_cvref_t<decltype(named_tuple)>,
@@ -89,6 +103,12 @@ struct TupleParser {
     }
   }
 
+  /**
+   * @brief Generates the schema for the tuple.
+   *
+   * @param _definitions The map of definitions to add to.
+   * @return The schema type.
+   */
   static schema::Type to_schema(
       std::map<std::string, schema::Type>* _definitions) {
     std::vector<schema::Type> types;
@@ -99,6 +119,13 @@ struct TupleParser {
   }
 
  private:
+  /**
+   * @brief Adds an element of the tuple to the schema.
+   *
+   * @tparam _i The index of the element.
+   * @param _definitions The map of definitions to add to.
+   * @param _types The vector of types to add the generated schema to.
+   */
   template <size_t _i>
   static void add_to_schema(std::map<std::string, schema::Type>* _definitions,
                             std::vector<schema::Type>* _types) noexcept {
@@ -106,6 +133,14 @@ struct TupleParser {
     _types->push_back(Parser<R, W, U, ProcessorsType>::to_schema(_definitions));
   }
 
+  /**
+   * @brief Builds the schema for the tuple.
+   *
+   * @tparam _is The indices of the elements.
+   * @param _definitions The map of definitions to add to.
+   * @param _types The vector of types to add the generated schemas to.
+   * @param seq The integer sequence of indices.
+   */
   template <int... _is>
   static void build_schema(std::map<std::string, schema::Type>* _definitions,
                            std::vector<schema::Type>* _types,
@@ -113,18 +148,37 @@ struct TupleParser {
     (add_to_schema<_is>(_definitions, _types), ...);
   }
 
+  /**
+   * @brief Adds an element of the tuple to the array.
+   *
+   * @tparam _i The index of the element.
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _tup The tuple to write.
+   * @param _parent The parent object.
+   */
   template <int _i, class P>
   static void add_to_array(const W& _w, const TupleType& _tup,
-                           const P& _parent) noexcept {
+                           const P& _parent) {
     using NewFieldType =
         std::remove_cvref_t<rfl::tuple_element_t<_i, TupleType>>;
     Parser<R, W, NewFieldType, ProcessorsType>::write(_w, rfl::get<_i>(_tup),
                                                       _parent);
   }
 
+  /**
+   * @brief Converts the tuple to an array.
+   *
+   * @tparam _is The indices of the elements.
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _tup The tuple to write.
+   * @param _parent The parent object.
+   * @param seq The integer sequence of indices.
+   */
   template <int... _is, class P>
   static void to_array(const W& _w, const TupleType& _tup, const P& _parent,
-                       std::integer_sequence<int, _is...>) noexcept {
+                       std::integer_sequence<int, _is...>) {
     (add_to_array<_is>(_w, _tup, _parent), ...);
   }
 };

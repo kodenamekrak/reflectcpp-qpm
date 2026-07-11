@@ -1,4 +1,3 @@
-#include <iostream>
 #include <rfl.hpp>
 #include <string>
 #include <vector>
@@ -54,6 +53,6 @@ TEST(avro, test_monster_example) {
                            .weapons = weapons,
                            .equipped = rfl::make_field<"weapon">(axe)};
 
-  write_and_read(orc);
+  write_and_read_with_json(orc);
 }
 }  // namespace test_monster_example

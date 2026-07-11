@@ -24,6 +24,8 @@
 
 [rfl::Skip](rfl_skip.md) - For skipping fields during serialization and/or deserialization.
 
+[rfl::Commented](commented.md) - For adding comments to your serialized format (only supported by some formats, such as YAML or XML). 
+
 [rfl::Result](result.md) - For error handling without exceptions.
 
 [Standard containers](standard_containers.md) - Describes how reflect-cpp treats containers in the standard library.
@@ -33,6 +35,10 @@
 [rfl::Bytestring](bytestring.md) - Describes how reflect-cpp handles binary strings for formats that support them.
 
 [rfl::Binary, rfl::Hex and rfl::Oct](number_systems.md)- For expressing numbers in different formats.
+
+[Default values](default_val.md) - For defining default values for fields that might be absent during deserialization.
+
+[Atomic types](atomic.md) - For serializing and deserializing atomic types.
 
 ## Validation
 

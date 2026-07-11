@@ -8,6 +8,11 @@
 #include "../Ref.hpp"
 #include "../Result.hpp"
 #include "../always_false.hpp"
+#include "../atomic/is_atomic.hpp"
+#include "../atomic/remove_atomic_t.hpp"
+#include "../atomic/set_atomic.hpp"
+#include "../internal/default_if_missing_v.hpp"
+#include "../internal/has_default_val_v.hpp"
 #include "Parent.hpp"
 #include "Parser_base.hpp"
 #include "schema/Type.hpp"
@@ -15,8 +20,7 @@
 #include "schemaful/IsSchemafulWriter.hpp"
 #include "schemaful/UniquePtrReader.hpp"
 
-namespace rfl {
-namespace parsing {
+namespace rfl ::parsing {
 
 template <class R, class W, class T, class ProcessorsType>
   requires AreReaderAndWriter<R, W, std::unique_ptr<T>>
@@ -25,28 +29,62 @@ struct Parser<R, W, std::unique_ptr<T>, ProcessorsType> {
 
   using ParentType = Parent<W>;
 
+  /**
+   * @brief Reads a unique_ptr from the input.
+   *
+   * @param _r The reader to use.
+   * @param _var The input variable to read from.
+   * @return A Result containing the parsed unique_ptr or an error.
+   */
   static Result<std::unique_ptr<T>> read(const R& _r,
                                          const InputVarType& _var) noexcept {
-    if constexpr (schemaful::IsSchemafulReader<R>) {
+    if constexpr (atomic::is_atomic_v<T>) {
+      using RemoveAtomicT = std::unique_ptr<atomic::remove_atomic_t<T>>;
+
+      static_assert(!internal::has_default_val_v<RemoveAtomicT>,
+                    "Atomic types cannot be mixed with rfl::DefaultVal");
+      static_assert(!internal::default_if_missing_v<ProcessorsType>,
+                    "Atomic types cannot be mixed with rfl::DefaultIfMissing");
+
+      return Parser<R, W, RemoveAtomicT, ProcessorsType>::read(_r, _var)
+          .transform([](auto&& _t) {
+            if (!_t) {
+              return std::unique_ptr<T>();
+            }
+            auto atomic_unique_ptr = std::make_unique<T>();
+            atomic::set_atomic(std::move(*_t), atomic_unique_ptr.get());
+            return atomic_unique_ptr;
+          });
+
+    } else if constexpr (schemaful::IsSchemafulReader<R>) {
       using S = schemaful::UniquePtrReader<R, W, std::remove_cvref_t<T>,
                                            ProcessorsType>;
       const auto to_unique = [&](const auto& _u) -> Result<std::unique_ptr<T>> {
         return _r.template read_union<std::unique_ptr<T>, S>(_u);
       };
       return _r.to_union(_var).and_then(to_unique);
+
     } else {
       if (_r.is_empty(_var)) {
         return std::unique_ptr<T>();
       }
       return Parser<R, W, std::remove_cvref_t<T>, ProcessorsType>::read(_r,
                                                                         _var)
-          .transform([](T&& _t) { return std::make_unique<T>(std::move(_t)); });
+          .transform([](T _t) { return std::make_unique<T>(std::move(_t)); });
     }
   }
 
+  /**
+   * @brief Writes a unique_ptr to the output.
+   *
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _s The unique_ptr to write.
+   * @param _parent The parent object.
+   */
   template <class P>
   static void write(const W& _w, const std::unique_ptr<T>& _s,
-                    const P& _parent) noexcept {
+                    const P& _parent) {
     if constexpr (schemaful::IsSchemafulWriter<W>) {
       auto u = ParentType::add_union(_w, _parent);
       using UnionType = typename ParentType::template Union<decltype(u)>;
@@ -67,6 +105,12 @@ struct Parser<R, W, std::unique_ptr<T>, ProcessorsType> {
     }
   }
 
+  /**
+   * @brief Generates the schema for the unique_ptr.
+   *
+   * @param _definitions The map of definitions to add to.
+   * @return The schema type.
+   */
   static schema::Type to_schema(
       std::map<std::string, schema::Type>* _definitions) {
     using U = std::remove_cvref_t<T>;
@@ -75,7 +119,6 @@ struct Parser<R, W, std::unique_ptr<T>, ProcessorsType> {
   }
 };
 
-}  // namespace parsing
-}  // namespace rfl
+}  // namespace rfl::parsing
 
 #endif

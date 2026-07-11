@@ -55,9 +55,6 @@ schema::Type type_to_avro_schema_type(
       return schema::Type{.value = schema::Type::Bytes{}};
 
     } else if constexpr (std::is_same<T, Type::Int32>() ||
-                         std::is_same<T, Type::Int64>() ||
-                         std::is_same<T, Type::UInt32>() ||
-                         std::is_same<T, Type::UInt64>() ||
                          std::is_same<T, Type::Integer>()) {
       return schema::Type{.value = schema::Type::Int{}};
 
@@ -83,6 +80,10 @@ schema::Type type_to_avro_schema_type(
       }
       return schema::Type{.value = any_of};
 
+    } else if constexpr (std::is_same<T, Type::Deprecated>()) {
+      return type_to_avro_schema_type(*_t.type_, _definitions, _already_known,
+                                      _num_unnamed);
+
     } else if constexpr (std::is_same<T, Type::Description>()) {
       // TODO: Return descriptions
       return type_to_avro_schema_type(*_t.type_, _definitions, _already_known,
@@ -99,6 +100,16 @@ schema::Type type_to_avro_schema_type(
           .value = schema::Type::Enum{.name = std::string("unnamed_") +
                                               std::to_string(++(*_num_unnamed)),
                                       .symbols = _t.values_}};
+
+    } else if constexpr (std::is_same<T, Type::DescribedLiteral>()) {
+      auto symbols = std::vector<std::string>();
+      for (const auto& v : _t.values_) {
+        symbols.push_back(v.value_);
+      }
+      return schema::Type{
+          .value = schema::Type::Enum{.name = std::string("unnamed_") +
+                                              std::to_string(++(*_num_unnamed)),
+                                      .symbols = symbols}};
 
     } else if constexpr (std::is_same<T, Type::Object>()) {
       auto record = schema::Type::Record{

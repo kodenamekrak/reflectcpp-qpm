@@ -1,4 +1,3 @@
-#include <iostream>
 #include <rfl.hpp>
 #include <rfl/json.hpp>
 #include <string>
@@ -25,6 +24,6 @@ TEST(avro, test_optional_fields) {
       Person{.first_name = "Homer",
              .children = std::vector<Person>({bart, lisa, maggie})};
 
-  write_and_read(homer);
+  write_and_read_with_json(homer);
 }
 }  // namespace test_optional_fields

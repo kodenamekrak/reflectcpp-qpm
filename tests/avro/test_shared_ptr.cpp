@@ -1,4 +1,3 @@
-#include <iostream>
 #include <memory>
 #include <rfl.hpp>
 #include <rfl/json.hpp>
@@ -24,6 +23,6 @@ TEST(avro, test_shared_ptr) {
   const auto homer =
       Person{.first_name = "Homer", .children = std::move(children)};
 
-  write_and_read(homer);
+  write_and_read_with_json(homer);
 }
 }  // namespace test_shared_ptr

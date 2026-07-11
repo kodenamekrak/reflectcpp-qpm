@@ -1,5 +1,4 @@
 #include <cassert>
-#include <iostream>
 #include <rfl.hpp>
 #include <string>
 #include <vector>
@@ -22,6 +21,6 @@ TEST(avro, test_default_values) {
       Person{.first_name = "Homer",
              .children = std::vector<Person>({bart, lisa, maggie})};
 
-  write_and_read(homer);
+  write_and_read_with_json(homer);
 }
 }  // namespace test_default_values

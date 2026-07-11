@@ -1,7 +1,5 @@
-#include <iostream>
 #include <rfl.hpp>
 #include <string>
-#include <vector>
 
 #include "write_and_read.hpp"
 
@@ -13,13 +11,13 @@ struct Person {
   std::unique_ptr<std::set<std::string>> children;
 };
 
-TEST(avro, test_set) { 
+TEST(avro, test_set) {
   auto children = std::make_unique<std::set<std::string>>(
       std::set<std::string>({"Bart", "Lisa", "Maggie"}));
 
   const auto homer =
       Person{.first_name = "Homer", .children = std::move(children)};
 
-  write_and_read(homer);
+  write_and_read_with_json(homer);
 }
 }  // namespace test_set

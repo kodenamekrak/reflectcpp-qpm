@@ -1,5 +1,4 @@
 #include <array>
-#include <iostream>
 #include <memory>
 #include <rfl/avro.hpp>
 #include <string>
@@ -30,6 +29,6 @@ TEST(avro, test_array) {
       .children = std::make_unique<std::array<Person, 3>>(std::array<Person, 3>{
           std::move(bart), std::move(lisa), std::move(maggie)})};
 
-  write_and_read(homer);
+  write_and_read_with_json(homer);
 }
 }  // namespace test_array

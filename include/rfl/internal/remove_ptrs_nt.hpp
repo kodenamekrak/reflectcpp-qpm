@@ -1,10 +1,10 @@
 #ifndef RFL_INTERNAL_REMOVE_PTRS_NT_HPP_
 #define RFL_INTERNAL_REMOVE_PTRS_NT_HPP_
 
-#include <functional>
 #include <type_traits>
 
 #include "../Field.hpp"
+#include "../NamedTuple.hpp"
 #include "StringLiteral.hpp"
 #include "wrap_in_rfl_array_t.hpp"
 

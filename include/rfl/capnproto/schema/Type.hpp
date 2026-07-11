@@ -2,20 +2,18 @@
 #define RFL_CAPNPROTO_SCHEMA_TYPE_HPP_
 
 #include <iostream>
-#include <map>
-#include <memory>
-#include <optional>
 #include <string>
 
-#include "../../Literal.hpp"
-#include "../../Object.hpp"
+//#include "../../Literal.hpp"
+//#include "../../Object.hpp"
 #include "../../Ref.hpp"
-#include "../../Rename.hpp"
+//#include "../../Rename.hpp"
 #include "../../Variant.hpp"
+#include "../../common.hpp"
 
 namespace rfl::capnproto::schema {
 
-struct Type {
+struct RFL_API Type {
   struct Void {};
 
   struct Bool {};
@@ -45,30 +43,30 @@ struct Type {
   struct Text {};
 
   struct Enum {
-    std::string name;
-    std::vector<std::string> fields;
+    std::string name{};
+    std::vector<std::string> fields{};
   };
 
   struct List {
-    rfl::Ref<Type> type;
+    rfl::Ref<Type> type{};
   };
 
   struct Map {
-    rfl::Ref<Type> type;
+    rfl::Ref<Type> type{};
   };
 
   struct Reference {
-    std::string type_name;
+    std::string type_name{};
   };
 
   struct Struct {
-    std::string name;
-    std::vector<std::pair<std::string, Type>> fields;
+    std::string name{};
+    std::vector<std::pair<std::string, Type>> fields{};
   };
 
   struct Union {
-    std::string name;
-    std::vector<std::pair<std::string, Type>> fields;
+    std::string name{};
+    std::vector<std::pair<std::string, Type>> fields{};
   };
 
   using ReflectionType =

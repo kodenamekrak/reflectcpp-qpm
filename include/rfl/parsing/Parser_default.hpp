@@ -2,20 +2,21 @@
 #define RFL_PARSING_PARSER_DEFAULT_HPP_
 
 #include <map>
-#include <stdexcept>
 #include <type_traits>
 
 #include "../Result.hpp"
 #include "../always_false.hpp"
 #include "../enums.hpp"
 #include "../from_named_tuple.hpp"
+#include "../internal/default_if_missing_v.hpp"
+#include "../internal/has_default_val_v.hpp"
 #include "../internal/has_reflection_method_v.hpp"
 #include "../internal/has_reflection_type_v.hpp"
 #include "../internal/has_reflector.hpp"
 #include "../internal/is_basic_type.hpp"
+#include "../internal/is_deprecated.hpp"
 #include "../internal/is_description.hpp"
 #include "../internal/is_literal.hpp"
-#include "../internal/is_underlying_enums_v.hpp"
 #include "../internal/is_validator.hpp"
 #include "../internal/processed_t.hpp"
 #include "../internal/ptr_cast.hpp"
@@ -43,7 +44,13 @@ struct Parser {
 
   using ParentType = Parent<W>;
 
-  /// Expresses the variables as type T.
+  /**
+   * @brief Reads a value from the input.
+   *
+   * @param _r The reader to use.
+   * @param _var The input variable to read from.
+   * @return A Result containing the parsed value or an error.
+   */
   static Result<T> read(const R& _r, const InputVarType& _var) noexcept {
     if constexpr (internal::has_read_reflector<T>) {
       const auto wrap_in_t = [](auto&& _named_tuple) -> Result<T> {
@@ -79,34 +86,26 @@ struct Parser {
         return Parser<R, W, ReflectionType, ProcessorsType>::read(_r, _var)
             .and_then(wrap_in_t);
 
-      } else if constexpr (std::is_class_v<T> && std::is_aggregate_v<T>) {
-        if constexpr (ProcessorsType::default_if_missing_) {
-          return read_struct_with_default(_r, _var);
-        } else {
-          return read_struct(_r, _var);
-        }
-
-      } else if constexpr (std::is_enum_v<T>) {
-        if constexpr (ProcessorsType::underlying_enums_ ||
-                      schemaful::IsSchemafulReader<R>) {
-          static_assert(enchantum::ScopedEnum<T>,
-                        "The enum must be a scoped enum in order to retrieve "
-                        "the underlying value.");
-          return _r.template to_basic_type<std::underlying_type_t<T>>(_var)
-              .transform([](const auto _val) { return static_cast<T>(_val); });
-        } else {
-          return _r.template to_basic_type<std::string>(_var).and_then(
-              rfl::string_to_enum<T>);
-        }
+      } else if constexpr (internal::default_if_missing_v<ProcessorsType> ||
+                           internal::has_default_val_v<T>) {
+        return read_struct_with_default(_r, _var);
 
       } else {
-        return _r.template to_basic_type<std::remove_cvref_t<T>>(_var);
+        return read_struct(_r, _var);
       }
     }
   }
 
+  /**
+   * @brief Writes a value to the output.
+   *
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _var The value to write.
+   * @param _parent The parent object.
+   */
   template <class P>
-  static void write(const W& _w, const T& _var, const P& _parent) noexcept {
+  static void write(const W& _w, const T& _var, const P& _parent) {
     if constexpr (internal::has_write_reflector<T>) {
       Parser<R, W, typename Reflector<T>::ReflType, ProcessorsType>::write(
           _w, Reflector<T>::from(_var), _parent);
@@ -125,66 +124,31 @@ struct Parser {
         Parser<R, W, ReflectionType, ProcessorsType>::write(_w, r, _parent);
       }
 
-    } else if constexpr (std::is_class_v<T> && std::is_aggregate_v<T>) {
+    } else {
       const auto ptr_named_tuple = ProcessorsType::template process<T>(
           internal::to_ptr_named_tuple(_var));
       using PtrNamedTupleType = std::remove_cvref_t<decltype(ptr_named_tuple)>;
       Parser<R, W, PtrNamedTupleType, ProcessorsType>::write(
           _w, ptr_named_tuple, _parent);
-
-    } else if constexpr (std::is_enum_v<T>) {
-      if constexpr (ProcessorsType::underlying_enums_ ||
-                    schemaful::IsSchemafulWriter<W>) {
-        const auto val = static_cast<std::underlying_type_t<T>>(_var);
-        ParentType::add_value(_w, val, _parent);
-      } else {
-        const auto str = rfl::enum_to_string(_var);
-        ParentType::add_value(_w, str, _parent);
-      }
-
-    } else {
-      ParentType::add_value(_w, _var, _parent);
     }
   }
 
-  /// Generates a schema for the underlying type.
+  /**
+   * @brief Generates the schema for the type.
+   *
+   * @param _definitions The map of definitions to add to.
+   * @return The schema type.
+   */
   static schema::Type to_schema(
       std::map<std::string, schema::Type>* _definitions) {
     using U = std::remove_cvref_t<T>;
     using Type = schema::Type;
-    if constexpr (std::is_same<U, bool>()) {
-      return Type{Type::Boolean{}};
 
-    } else if constexpr (std::is_same<U, std::int32_t>()) {
-      return Type{Type::Int32{}};
-
-    } else if constexpr (std::is_same<U, std::int64_t>()) {
-      return Type{Type::Int64{}};
-
-    } else if constexpr (std::is_same<U, std::uint32_t>()) {
-      return Type{Type::UInt32{}};
-
-    } else if constexpr (std::is_same<U, std::uint64_t>()) {
-      return Type{Type::UInt64{}};
-
-    } else if constexpr (std::is_integral<U>()) {
-      return Type{Type::Integer{}};
-
-    } else if constexpr (std::is_same<U, float>()) {
-      return Type{Type::Float{}};
-
-    } else if constexpr (std::is_floating_point_v<U>) {
-      return Type{Type::Double{}};
-
-    } else if constexpr (std::is_same<U, std::string>()) {
-      return Type{Type::String{}};
-
-    } else if constexpr (rfl::internal::is_description_v<U>) {
+    if constexpr (rfl::internal::is_description_v<U>) {
       return make_description<U>(_definitions);
 
-    } else if constexpr (std::is_enum_v<U>) {
-      return make_enum<U>(_definitions);
-
+    } else if constexpr (rfl::internal::is_deprecated_v<U>) {
+      return make_deprecated<U>(_definitions);
     } else if constexpr (std::is_class_v<U> && std::is_aggregate_v<U>) {
       return make_reference<U>(_definitions);
 
@@ -194,7 +158,9 @@ struct Parser {
     } else if constexpr (internal::is_validator_v<U>) {
       return make_validated<U>(_definitions);
 
-    } else if constexpr (internal::has_reflection_type_v<U>) {
+    } else if constexpr (internal::has_reflection_type_v<U> ||
+                         internal::has_read_reflector<U> ||
+                         internal::has_write_reflector<U>) {
       return make_reference<U>(_definitions);
 
     } else {
@@ -203,6 +169,18 @@ struct Parser {
   }
 
  private:
+  template <class U>
+  static schema::Type make_deprecated(
+      std::map<std::string, schema::Type>* _definitions) {
+    using Type = schema::Type;
+    return Type{Type::Deprecated{
+        .deprecation_message_ = typename U::DeprecationMessage().str(),
+        .description_ = typename U::Content().str(),
+        .type_ =
+            Ref<Type>::make(Parser<R, W, std::remove_cvref_t<typename U::Type>,
+                                   ProcessorsType>::to_schema(_definitions))}};
+  }
+
   template <class U>
   static schema::Type make_description(
       std::map<std::string, schema::Type>* _definitions) {
@@ -215,34 +193,25 @@ struct Parser {
   }
 
   template <class U>
-  static schema::Type make_enum(
-      std::map<std::string, schema::Type>* _definitions) {
-    using Type = schema::Type;
-    if constexpr (ProcessorsType::underlying_enums_ ||
-                  schemaful::IsSchemafulReader<R>) {
-      return Type{Type::Integer{}};
-    } else if constexpr (enchantum::is_bitflag<U>) {
-      return Type{Type::String{}};
-    } else {
-      return Parser<
-          R, W,
-          typename decltype(internal::enums::get_enum_names<U>())::Literal,
-          ProcessorsType>::to_schema(_definitions);
-    }
-  }
-
-  template <class U>
   static schema::Type make_reference(
       std::map<std::string, schema::Type>* _definitions) {
     using Type = schema::Type;
     const auto name = make_type_name<U>();
+
     if (_definitions->find(name) == _definitions->end()) {
       (*_definitions)[name] =
           Type{Type::Integer{}};  // Placeholder to avoid infinite loop.
+
       if constexpr (internal::has_reflection_type_v<U>) {
         (*_definitions)[name] =
             Parser<R, W, typename U::ReflectionType, ProcessorsType>::to_schema(
                 _definitions);
+
+      } else if constexpr (internal::has_read_reflector<U> ||
+                           internal::has_write_reflector<U>) {
+        (*_definitions)[name] = Parser<R, W, typename Reflector<U>::ReflType,
+                                       ProcessorsType>::to_schema(_definitions);
+
       } else {
         using NamedTupleType = internal::processed_t<U, ProcessorsType>;
         (*_definitions)[name] =
@@ -266,10 +235,10 @@ struct Parser {
         .validation_ = ValidationType::template to_schema<ReflectionType>()}};
   }
 
-  /// The way this works is that we allocate space on the stack in this size of
-  /// the struct in which we then write the individual fields using
-  /// views and placement new. This is how we deal with the fact that some
-  /// fields might not be default-constructible.
+  /// The way this works is that we allocate space on the stack in this size
+  /// of the struct in which we then write the individual fields using views
+  /// and placement new. This is how we deal with the fact that some fields
+  /// might not be default-constructible.
   static Result<T> read_struct(const R& _r, const InputVarType& _var) {
     alignas(T) unsigned char buf[sizeof(T)]{};
     auto ptr = internal::ptr_cast<T*>(&buf);
@@ -286,10 +255,10 @@ struct Parser {
     return res;
   }
 
-  /// This is actually more straight-forward than the standard case - we just
-  /// allocate a struct and then fill it. But it is less efficient and it
-  /// assumes that all values on the struct have a default constructor, so we
-  /// only use it when the DefaultIfMissing preprocessor is added.
+  /// This is actually more straight-forward than the standard case - we
+  /// just allocate a struct and then fill it. But it is less efficient and
+  /// it assumes that all values on the struct have a default constructor,
+  /// so we only use it when the DefaultIfMissing preprocessor is added.
   static Result<T> read_struct_with_default(const R& _r,
                                             const InputVarType& _var) {
     auto t = T{};

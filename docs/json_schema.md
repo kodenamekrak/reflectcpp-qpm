@@ -35,15 +35,15 @@ This will result in the following JSON schema:
 ```json
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$ref": "#/definitions/Person",
-    "definitions": {
+    "$ref": "#/$defs/Person",
+    "$defs": {
         "Person": {
             "type": "object",
             "properties": {
                 "children": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Person"
+                        "$ref": "#/$defs/Person"
                     }
                 },
                 "email": {
@@ -100,8 +100,8 @@ const std::string json_schema = rfl::json::to_schema<Person>(rfl::json::pretty);
 ```json
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$ref": "#/definitions/Person",
-    "definitions": {
+    "$ref": "#/$defs/Person",
+    "$defs": {
         "Person": {
             "type": "object",
             "properties": {
@@ -109,7 +109,7 @@ const std::string json_schema = rfl::json::to_schema<Person>(rfl::json::pretty);
                     "type": "array",
                     "description": "The person's children. Pass an empty array for no children.",
                     "items": {
-                        "$ref": "#/definitions/Person"
+                        "$ref": "#/$defs/Person"
                     }
                 },
                 "email": {
@@ -138,6 +138,8 @@ const std::string json_schema = rfl::json::to_schema<Person>(rfl::json::pretty);
     }
 }
 ```
+
+`rfl::Description` behaves like a thin wrapper around the underlying type. Much like `rfl::Field`, you can access the underlying value using `.get()`, `.value()`, `operator()()`, or `operator*()` (const and non-const overloads).
 
 You also add a description to the entire JSON schema:
 
@@ -151,9 +153,9 @@ const std::string json_schema = rfl::json::to_schema<
 ```json
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$ref": "#/definitions/Person",
+    "$ref": "#/$defs/Person",
     "description": "JSON schema that describes the required attributes for the person class.",
-    "definitions": {
+    "$defs": {
         "Person": {
             "type": "object",
             "properties": {
@@ -161,7 +163,7 @@ const std::string json_schema = rfl::json::to_schema<
                     "type": "array",
                     "description": "The person's children. Pass an empty array for no children.",
                     "items": {
-                        "$ref": "#/definitions/Person"
+                        "$ref": "#/$defs/Person"
                     }
                 },
                 "email": {
@@ -190,3 +192,55 @@ const std::string json_schema = rfl::json::to_schema<
     }
 }
 ```
+
+## Indicating deprecated fields
+
+You can mark fields as deprecated in the JSON schema using `rfl::Deprecated`. This adds `"deprecated": true` and a `"deprecationMessage"` to the generated schema, along with a description.
+
+`rfl::Deprecated` takes three template parameters: a deprecation message, a description, and the underlying type:
+
+```cpp
+struct Person {
+  rfl::Deprecated<"Use 'full_name' instead.", "The person's first name", std::optional<std::string>>
+      std::optional<first_name>;
+  rfl::Description<"The person's full name", std::string> full_name;
+  float salary;
+};
+```
+
+```cpp
+const std::string json_schema = rfl::json::to_schema<Person>(rfl::json::pretty);
+```
+
+```json
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/Person",
+    "$defs": {
+        "Person": {
+            "type": "object",
+            "properties": {
+                "first_name": {
+                    "type": "string",
+                    "description": "The person's first name",
+                    "deprecated": true,
+                    "deprecationMessage": "Use 'full_name' instead."
+                },
+                "full_name": {
+                    "type": "string",
+                    "description": "The person's full name"
+                },
+                "salary": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "full_name",
+                "salary"
+            ]
+        }
+    }
+}
+```
+
+`rfl::Deprecated` behaves like a thin wrapper around the underlying type, just like `rfl::Description`. You can access the underlying value using `.get()`, `.value()`, `operator()()`, or the assignment operator.

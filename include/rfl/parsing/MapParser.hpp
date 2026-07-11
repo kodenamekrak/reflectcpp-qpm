@@ -2,7 +2,6 @@
 #define RFL_PARSING_MAPPARSER_HPP_
 
 #include <map>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 
@@ -33,6 +32,13 @@ struct MapParser {
 
   using ParentType = Parent<W>;
 
+  /**
+   * @brief Reads a map from the input.
+   *
+   * @param _r The reader to use.
+   * @param _var The input variable to read from.
+   * @return A Result containing the parsed map or an error.
+   */
   static Result<MapType> read(const R& _r, const InputVarType& _var) noexcept {
     const auto to_map = [&](auto obj) -> Result<MapType> {
       return make_map(_r, obj);
@@ -44,8 +50,16 @@ struct MapParser {
     }
   }
 
+  /**
+   * @brief Writes a map to the output.
+   *
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _m The map to write.
+   * @param _parent The parent object.
+   */
   template <class P>
-  static void write(const W& _w, const MapType& _m, const P& _parent) noexcept {
+  static void write(const W& _w, const MapType& _m, const P& _parent) {
     if constexpr (schemaful::IsSchemafulWriter<W>) {
       write_map(_w, _m, _parent);
     } else {
@@ -53,6 +67,12 @@ struct MapParser {
     }
   }
 
+  /**
+   * @brief Generates the schema for the map.
+   *
+   * @param _definitions The map of definitions to add to.
+   * @return The schema type.
+   */
   static schema::Type to_schema(
       std::map<std::string, schema::Type>* _definitions) {
     return schema::Type{schema::Type::StringMap{Ref<schema::Type>::make(
@@ -62,7 +82,7 @@ struct MapParser {
  private:
   static Result<MapType> make_map(const R& _r, const auto& _obj_or_map) {
     MapType map;
-    std::vector<Error> errors;
+    std::vector<std::string> errors;
     const auto map_reader =
         MapReader<R, W, MapType, ProcessorsType>(&_r, &map, &errors);
     if constexpr (schemaful::IsSchemafulReader<R>) {
@@ -83,8 +103,7 @@ struct MapParser {
   }
 
   template <class P>
-  static void write_map(const W& _w, const MapType& _m,
-                        const P& _parent) noexcept {
+  static void write_map(const W& _w, const MapType& _m, const P& _parent) {
     auto m = ParentType::add_map(_w, _m.size(), _parent);
 
     using ParentMapType =
@@ -123,8 +142,7 @@ struct MapParser {
   }
 
   template <class P>
-  static void write_object(const W& _w, const MapType& _m,
-                           const P& _parent) noexcept {
+  static void write_object(const W& _w, const MapType& _m, const P& _parent) {
     auto obj = ParentType::add_object(_w, _m.size(), _parent);
     for (const auto& [k, v] : _m) {
       if constexpr (internal::has_reflection_type_v<KeyType>) {

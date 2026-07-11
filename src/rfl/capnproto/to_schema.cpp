@@ -26,7 +26,6 @@ SOFTWARE.
 
 #include "rfl/capnproto/to_schema.hpp"
 
-#include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -34,8 +33,8 @@ SOFTWARE.
 #include "rfl/capnproto/is_named_type.hpp"
 #include "rfl/capnproto/schema/CapnProtoTypes.hpp"
 #include "rfl/capnproto/schema/Type.hpp"
-#include "rfl/internal/strings/strings.hpp"
-#include "rfl/json.hpp"
+//#include "rfl/internal/strings/strings.hpp"
+//#include "rfl/json.hpp"
 #include "rfl/parsing/schemaful/tuple_to_object.hpp"
 
 namespace rfl::capnproto {
@@ -71,7 +70,7 @@ schema::Type any_of_to_capnproto_schema_type(
 
 schema::Type literal_to_capnproto_schema_type(
     const parsing::schema::Type::Literal& _literal,
-    const std::map<std::string, parsing::schema::Type>& _definitions,
+    const std::map<std::string, parsing::schema::Type>& /*_definitions*/,
     const Parent _parent, schema::CapnProtoTypes* _cnp_types) {
   const auto enum_schema = schema::Type::Enum{.fields = _literal.values_};
   if (_parent == Parent::is_top_level) {
@@ -180,6 +179,10 @@ schema::Type type_to_capnproto_schema_type(
       return any_of_to_capnproto_schema_type(_t, _definitions, _parent,
                                              _cnp_types);
 
+    } else if constexpr (std::is_same<T, Type::Deprecated>()) {
+      return type_to_capnproto_schema_type(*_t.type_, _definitions, _parent,
+                                           _cnp_types);
+
     } else if constexpr (std::is_same<T, Type::Description>()) {
       return type_to_capnproto_schema_type(*_t.type_, _definitions, _parent,
                                            _cnp_types);
@@ -194,6 +197,14 @@ schema::Type type_to_capnproto_schema_type(
     } else if constexpr (std::is_same<T, Type::Literal>()) {
       return literal_to_capnproto_schema_type(_t, _definitions, _parent,
                                               _cnp_types);
+
+    } else if constexpr (std::is_same<T, Type::DescribedLiteral>()) {
+      auto values = std::vector<std::string>();
+      for (const auto& v : _t.values_) {
+        values.push_back(v.value_);
+      }
+      return literal_to_capnproto_schema_type(
+          Type::Literal{.values_ = values}, _definitions, _parent, _cnp_types);
 
     } else if constexpr (std::is_same<T, Type::Object>()) {
       return object_to_capnproto_schema_type(_t, _definitions, _parent,

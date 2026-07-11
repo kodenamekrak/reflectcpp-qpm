@@ -4,9 +4,14 @@
 #include "../type_name_t.hpp"
 #include "is_tagged_union_wrapper.hpp"
 
-namespace rfl {
-namespace parsing {
+namespace rfl::parsing {
 
+/**
+ * @brief Replaces all non-alphanumeric characters with underscores.
+ *
+ * @param _str The string to process.
+ * @return The processed string.
+ */
 inline std::string replace_non_alphanumeric(std::string _str) {
   for (auto& ch : _str) {
     ch = std::isalnum(ch) ? ch : '_';
@@ -14,6 +19,12 @@ inline std::string replace_non_alphanumeric(std::string _str) {
   return _str;
 }
 
+/**
+ * @brief Generates a type name for the type U.
+ *
+ * @tparam U The type to generate the name for.
+ * @return The type name.
+ */
 template <class U>
 static std::string make_type_name() {
   if constexpr (is_tagged_union_wrapper_v<U>) {
@@ -24,7 +35,6 @@ static std::string make_type_name() {
   }
 }
 
-}  // namespace parsing
-}  // namespace rfl
+}  // namespace rfl::parsing
 
 #endif

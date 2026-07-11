@@ -2,10 +2,8 @@
 #define RFL_PARSING_PARSER_ARRAY_HPP_
 
 #include <array>
-#include <bit>
 #include <map>
 #include <type_traits>
-#include <vector>
 
 #include "../Ref.hpp"
 #include "../Result.hpp"
@@ -28,6 +26,12 @@ struct Parser<R, W, std::array<T, _size>, ProcessorsType> {
 
   using ParentType = Parent<W>;
 
+  /**
+   * @brief Reads a std::array from the input.
+   * @param _r The reader to use.
+   * @param _var The input variable to read.
+   * @return A Result containing the parsed array or an error.
+   */
   static Result<std::array<T, _size>> read(const R& _r,
                                            const InputVarType& _var) noexcept {
     const auto parse =
@@ -55,9 +59,16 @@ struct Parser<R, W, std::array<T, _size>, ProcessorsType> {
     return _r.to_array(_var).and_then(parse);
   }
 
+  /**
+   * @brief Writes a std::array to the output.
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _arr The array to write.
+   * @param _parent The parent object.
+   */
   template <class P>
   static void write(const W& _w, const std::array<T, _size>& _arr,
-                    const P& _parent) noexcept {
+                    const P& _parent) {
     auto arr = ParentType::add_array(_w, _size, _parent);
     const auto new_parent = typename ParentType::Array{&arr};
     for (const auto& e : _arr) {
@@ -67,6 +78,11 @@ struct Parser<R, W, std::array<T, _size>, ProcessorsType> {
     _w.end_array(&arr);
   }
 
+  /**
+   * @brief Generates the schema for std::array.
+   * @param _definitions The map of definitions to add to.
+   * @return The schema type for std::array.
+   */
   static schema::Type to_schema(
       std::map<std::string, schema::Type>* _definitions) {
     using U = std::remove_cvref_t<T>;

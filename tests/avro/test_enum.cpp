@@ -1,9 +1,6 @@
 #include <cassert>
-#include <iostream>
 #include <rfl.hpp>
 #include <rfl/json.hpp>
-#include <string>
-#include <vector>
 
 #include "write_and_read.hpp"
 
@@ -19,7 +16,7 @@ struct Circle {
 TEST(avro, test_enum) {
   const auto circle = Circle{.radius = 2.0, .color = Color::green};
 
-  write_and_read(circle);
+  write_and_read_with_json(circle);
 }
 
 }  // namespace test_enum

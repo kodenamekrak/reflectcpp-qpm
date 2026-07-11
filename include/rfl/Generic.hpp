@@ -1,6 +1,7 @@
 #ifndef RFL_GENERIC_HPP_
 #define RFL_GENERIC_HPP_
 
+#include <limits>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -11,10 +12,11 @@
 #include "Object.hpp"
 #include "Result.hpp"
 #include "Variant.hpp"
+#include "common.hpp"
 
 namespace rfl {
 
-class Generic {
+class RFL_API Generic {
  public:
   constexpr static std::nullopt_t Null = std::nullopt;
 
@@ -25,48 +27,92 @@ class Generic {
   using ReflectionType = std::optional<
       std::variant<bool, int64_t, double, std::string, Object, Array>>;
 
+  /// Default constructor - creates a Generic with null value.
   Generic();
 
+  /// Move constructor.
+  /// @param _other The Generic to move from
   Generic(Generic&& _other) noexcept;
 
+  /// Copy constructor.
+  /// @param _other The Generic to copy from
   Generic(const Generic& _other);
 
+  /// Constructs from a variant (copy).
+  /// @param _value The variant value to wrap
   Generic(const VariantType& _value);
 
+  /// Constructs from a variant (move).
+  /// @param _value The variant value to wrap (will be moved)
   Generic(VariantType&& _value) noexcept;
 
+  /// Constructs from a reflection type.
+  /// @param _value The reflection type value (optional variant)
   Generic(const ReflectionType& _value);
 
-  template <class T,
-            typename std::enable_if<std::is_convertible_v<T, VariantType>,
-                                    bool>::type = true>
+  /// Constructs from any type convertible to VariantType (copy).
+  /// @tparam T The type to convert from
+  /// @param _value The value to convert and wrap
+  template <class T>
+    requires std::is_convertible_v<T, VariantType>
   Generic(const T& _value) {
     value_ = _value;
   }
 
-  template <class T,
-            typename std::enable_if<std::is_convertible_v<T, VariantType>,
-                                    bool>::type = true>
+  /// Constructs from any type convertible to VariantType (move).
+  /// @tparam T The type to convert from
+  /// @param _value The value to convert and wrap (will be moved)
+  template <class T>
+    requires std::is_convertible_v<T, VariantType>
   Generic(T&& _value) noexcept : value_(std::forward<T>(_value)) {}
 
+  /// Destructor.
   ~Generic();
 
   /// Returns the underlying object.
-  const VariantType& get() const { return value_; }
+  const VariantType& get() const noexcept { return value_; }
+
+  /// Returns the underlying object.
+  VariantType& get() noexcept { return value_; }
+
+  /// Returns the underlying object.
+  VariantType& operator*() noexcept { return value_; }
+
+  /// Returns the underlying object.
+  const VariantType& operator*() const noexcept { return value_; }
+
+  /// Returns the underlying object.
+  VariantType& operator()() noexcept { return value_; }
+
+  /// Returns the underlying object.
+  const VariantType& operator()() const noexcept { return value_; }
+
+  /// Returns the underlying object.
+  VariantType& value() noexcept { return value_; }
+
+  /// Returns the underlying object.
+  const VariantType& value() const noexcept { return value_; }
 
   /// Whether the object contains the null value.
   bool is_null() const noexcept;
 
   /// Assigns the underlying object.
+  /// @param _value The variant value to assign
+  /// @return Reference to this object
   Generic& operator=(const VariantType& _value);
 
-  /// Assigns the underlying object.
+  /// Assigns the underlying object (move version).
+  /// @param _value The variant value to assign (will be moved)
+  /// @return Reference to this object
   Generic& operator=(VariantType&& _value) noexcept;
 
-  /// Assigns the underlying object.
-  template <class T,
-            typename std::enable_if<std::is_convertible_v<T, VariantType>,
-                                    bool>::type = true>
+  /// Assigns from any type convertible to VariantType.
+  /// Handles special conversions for numeric types to ensure proper variant alternative selection.
+  /// @tparam T The type to convert from
+  /// @param _value The value to assign
+  /// @return Reference to this object
+  template <class T>
+    requires std::is_convertible_v<T, VariantType>
   auto& operator=(const T& _value) {
     using Type = std::remove_cvref_t<T>;
     if constexpr (std::is_same_v<Type, bool>) {
@@ -81,10 +127,14 @@ class Generic {
     return *this;
   }
 
-  /// Assigns the underlying object.
+  /// Copy assignment operator.
+  /// @param _other The Generic to copy from
+  /// @return Reference to this object
   Generic& operator=(const Generic& _other);
 
-  /// Assigns the underlying object.
+  /// Move assignment operator.
+  /// @param _other The Generic to move from
+  /// @return Reference to this object
   Generic& operator=(Generic&& _other);
 
   /// Returns the underlying object, necessary for the serialization to work.
@@ -125,13 +175,23 @@ class Generic {
   }
 
   /// Casts the underlying value to a double or returns an rfl::Error, if the
-  /// underlying value is not a double.
+  /// underlying value is not a number or the conversion would result in loss of
+  /// precision.
   Result<double> to_double() const noexcept {
     return std::visit(
         [](auto _v) -> Result<double> {
           using V = std::remove_cvref_t<decltype(_v)>;
           if constexpr (std::is_same_v<V, double>) {
             return _v;
+          } else if constexpr (std::is_same_v<V, int64_t>) {
+            auto _d = static_cast<double>(_v);
+            if (static_cast<int64_t>(_d) == _v) {
+              return _d;
+            } else {
+              return error(
+                  "rfl::Generic: Could not cast the underlying value to a "
+                  "double without loss of precision.");
+            }
           } else {
             return error(
                 "rfl::Generic: Could not cast the underlying value to a "
@@ -148,6 +208,11 @@ class Generic {
         [](auto _v) -> Result<int> {
           using V = std::remove_cvref_t<decltype(_v)>;
           if constexpr (std::is_same_v<V, int64_t>) {
+            if (_v < static_cast<int64_t>(std::numeric_limits<int>::min()) ||
+                _v > static_cast<int64_t>(std::numeric_limits<int>::max())) {
+              return error(
+                  "rfl::Generic: int64_t value out of range for int.");
+            }
             return static_cast<int>(_v);
           } else {
             return error(
@@ -233,6 +298,9 @@ class Generic {
   const VariantType& variant() const noexcept { return value_; };
 
  private:
+  /// Converts a ReflectionType to a VariantType.
+  /// @param _r The reflection type (optional variant) to convert
+  /// @return The converted variant type
   static VariantType from_reflection_type(const ReflectionType& _r) noexcept;
 
  private:

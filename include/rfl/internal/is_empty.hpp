@@ -1,11 +1,11 @@
 #ifndef RFL_INTERNAL_ISEMPTY_HPP_
 #define RFL_INTERNAL_ISEMPTY_HPP_
 
-#include <tuple>
 #include <type_traits>
 
 #include "../Tuple.hpp"
 #include "is_named_tuple.hpp"
+#include "ptr_tuple_t.hpp"
 
 namespace rfl::internal {
 

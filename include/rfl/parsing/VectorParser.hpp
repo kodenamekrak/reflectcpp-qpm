@@ -3,7 +3,6 @@
 
 #include <iterator>
 #include <map>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 
@@ -44,6 +43,13 @@ struct VectorParser {
   static_assert(!std::is_same_v<std::remove_cvref_t<VecType>, Vectorstring>,
                 "Cannot be a vectorstring.");
 
+  /**
+   * @brief Reads a vector-like type from the input.
+   *
+   * @param _r The reader to use.
+   * @param _var The input variable to read from.
+   * @return A Result containing the parsed type or an error.
+   */
   static Result<VecType> read(const R& _r, const InputVarType& _var) noexcept {
     if constexpr (treat_as_map()) {
       return MapParser<R, W, VecType, ProcessorsType>::read(_r, _var);
@@ -72,9 +78,16 @@ struct VectorParser {
     }
   }
 
+  /**
+   * @brief Writes a vector-like type to the output.
+   *
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _vec The vector-like type to write.
+   * @param _parent The parent object.
+   */
   template <class P>
-  static void write(const W& _w, const VecType& _vec,
-                    const P& _parent) noexcept {
+  static void write(const W& _w, const VecType& _vec, const P& _parent) {
     if constexpr (treat_as_map()) {
       MapParser<R, W, VecType, ProcessorsType>::write(_w, _vec, _parent);
     } else {
@@ -89,7 +102,12 @@ struct VectorParser {
     }
   }
 
-  /// Generates a schema for the underlying type.
+  /**
+   * @brief Generates the schema for the vector-like type.
+   *
+   * @param _definitions The map of definitions to add to.
+   * @return The schema type.
+   */
   static schema::Type to_schema(
       std::map<std::string, schema::Type>* _definitions) {
     if constexpr (treat_as_map()) {
@@ -103,6 +121,11 @@ struct VectorParser {
   }
 
  private:
+  /**
+   * @brief Determines if the vector-like type should be treated as a map.
+   *
+   * @return true if the type should be treated as a map, false otherwise.
+   */
   static constexpr bool treat_as_map() {
     if constexpr (is_map_like_not_multimap<VecType>()) {
       if constexpr (internal::has_reflection_type_v<typename T::first_type>) {

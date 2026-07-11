@@ -10,6 +10,7 @@
 
 #include "../Result.hpp"
 #include "../always_false.hpp"
+#include "../internal/allow_raw_ptrs_v.hpp"
 #include "Parent.hpp"
 #include "Parser_base.hpp"
 #include "schema/Type.hpp"
@@ -22,9 +23,16 @@ struct Parser<R, W, std::span<T>, ProcessorsType> {
   using InputVarType = typename R::InputVarType;
   using ParentType = Parent<W>;
 
+  /**
+   * @brief Reads a span from the input.
+   *
+   * @param _r The reader to use.
+   * @param _var The input variable to read from.
+   * @return A Result containing the parsed span or an error.
+   */
   static Result<std::span<T>> read(const R& _r,
                                    const InputVarType& _var) noexcept {
-    if constexpr (!ProcessorsType::allow_raw_ptrs_) {
+    if constexpr (!internal::allow_raw_ptrs_v<ProcessorsType>) {
       static_assert(
           always_false_v<R>,
           "Reading into std::span is dangerous and "
@@ -54,9 +62,16 @@ struct Parser<R, W, std::span<T>, ProcessorsType> {
     }
   }
 
+  /**
+   * @brief Writes a span to the output.
+   *
+   * @tparam P The type of the parent.
+   * @param _w The writer to use.
+   * @param _span The span to write.
+   * @param _parent The parent object.
+   */
   template <class P>
-  static void write(const W& _w, const std::span<T>& _span,
-                    const P& _parent) noexcept {
+  static void write(const W& _w, const std::span<T>& _span, const P& _parent) {
     auto arr = ParentType::add_array(_w, _span.size(), _parent);
     const auto new_parent = typename ParentType::Array{&arr};
     for (const auto& v : _span) {
@@ -66,6 +81,12 @@ struct Parser<R, W, std::span<T>, ProcessorsType> {
     _w.end_array(&arr);
   }
 
+  /**
+   * @brief Generates the schema for the span.
+   *
+   * @param _definitions The map of definitions to add to.
+   * @return The schema type.
+   */
   static schema::Type to_schema(
       std::map<std::string, schema::Type>* _definitions) {
     return Parser<R, W, std::vector<std::remove_cvref_t<T>>,
