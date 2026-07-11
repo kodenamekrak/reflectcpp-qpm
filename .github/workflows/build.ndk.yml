@@ -64,12 +64,32 @@ jobs:
         echo "VERSION=${GITHUB_REF#refs/tags/v}" >> ${GITHUB_OUTPUT}
 
     - name: Setup qpm
+      if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
       uses: Fernthedev/qpm-action@v1
       with:
         workflow_token: ${{ secrets.GITHUB_TOKEN }}
         restore: true
         cache: false
         publish: false
+
+      # if we have a tag, we are making a qpm release
+    - name: Setup qpm for release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: Fernthedev/qpm-action@v1
+      with:
+        workflow_token: ${{ secrets.GITHUB_TOKEN }}
+        restore: true
+        cache: false
+
+        publish: late
+        publish_token: ${{ secrets.QPM_KEY }}
+
+        version: ${{ steps.version.outputs.VERSION }}
+        tag: ${{ steps.version.outputs.TAG }}
+
+        qpm_release_bin: true
+        qpm_debug_bin: true
+        qpm_qmod: ${{ env.qmod_name }}.qmod
 
     - name: Build & Create Qmod
       run: |
