@@ -1,6 +1,15 @@
 git submodule update --init --recursive
 qpm restore
 
+& cmake -B build -G Ninja -DCMAKE_CXX_STANDARD=20 -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+    -DREFLECTCPP_BUILD_SHARED=ON -DREFLECTCPP_JSON=ON -DREFLECTCPP_TOML=ON -DREFLECTCPP_XML=ON -DREFLECTCPP_YAML=ON -DREFLECTCPP_MSGPACK=ON `
+    -DVCPKG_INSTALL_OPTIONS="--allow-unsupported" -DVCPKG_TARGET_TRIPLET=arm64-android -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="$env:ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" `
+    -DANDROID_ABI=arm64-v8a
+
+& cmake --build build
+
+Move-Item -Path build/libreflectcpp.so -Destination build/debug_libreflectcpp.so
+
 & cmake -B build -G Ninja -DCMAKE_CXX_STANDARD=20 -DCMAKE_BUILD_TYPE=Release `
     -DREFLECTCPP_BUILD_SHARED=ON -DREFLECTCPP_JSON=ON -DREFLECTCPP_TOML=ON -DREFLECTCPP_XML=ON -DREFLECTCPP_YAML=ON -DREFLECTCPP_MSGPACK=ON `
     -DVCPKG_INSTALL_OPTIONS="--allow-unsupported" -DVCPKG_TARGET_TRIPLET=arm64-android -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="$env:ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" `
